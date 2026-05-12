@@ -70,7 +70,7 @@ app.post("/api/reset", (_, res) => {
 
 app.use(express.static(distPath));
 
-app.get("*", (req, res, next) => {
+app.use((req, res, next) => {
   if (req.path.startsWith("/api")) {
     next();
     return;
