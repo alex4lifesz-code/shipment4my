@@ -1,0 +1,12 @@
+services:
+  shipment-tracker:
+    build: .
+    container_name: shipment-tracker
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+    volumes:
+      - /path/to/shipment-tracker/data:/app/data
+    ports:
+      - 4000:4000
+    restart: unless-stopped

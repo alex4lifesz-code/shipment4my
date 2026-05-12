@@ -1,68 +1,16 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Ship, Plane, Package, X, Search, Filter, Plus, Edit2, Save, User, Building, Phone, Mail, MapPin, FileText, Trash2, Menu, LayoutGrid, Table, Home, Users, Settings, BarChart3, FileBox, Bell, HelpCircle, LogOut, ChevronLeft, ChevronRight, TrendingUp, Calendar, Globe, AlertCircle, CheckCircle, Clock, Download, Upload, Printer, FileSpreadsheet, FilePlus, BellRing, BellOff, Moon, Sun, Lock, Database, Palette, Volume2, VolumeX, Briefcase, Flag, Hash, DollarSign } from 'lucide-react';
+import { ChevronDown, ChevronUp, Ship, Plane, Package, X, Search, Filter, Plus, Edit2, Save, User, Building, Phone, Mail, MapPin, FileText, Trash2, Menu, LayoutGrid, Table, Home, Users, Settings, BarChart3, FileBox, Bell, HelpCircle, LogOut, ChevronLeft, ChevronRight, TrendingUp, Calendar, Globe, AlertCircle, CheckCircle, Clock, Download, Upload, Printer, FileSpreadsheet, FilePlus, BellRing, BellOff, Moon, Sun, Lock, Database, Palette, Volume2, VolumeX, Briefcase, Flag, Hash, DollarSign, Copy } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
 
-const initialShipmentData = [
-  { id: 1, mbl: "JJCSHSGY404651", hbl: "NEOSHA24100133", type: "40'DC HQ", pol: "SHANGHAI, CHINA", pod: "CATLAI, HCM", shipper: "ANJI ZIRUI TRADING CO.,LTD", cnee: "HERUI", etd: "2025-10-22", eta: "2025-10-28", term: "FOB", status: "DONE!", agent: "NEO SHA", year: 2025 },
-  { id: 2, mbl: "ESSASEL24112560", hbl: "LINK2411008", type: "LCL", pol: "BUSAN, KOREA", pod: "CATLAI, HCM", shipper: "DK FINECHEMICAL", cnee: "AN KIEN THANH", etd: "2025-11-29", eta: "2025-12-06", term: "CIF", status: "DONE!", agent: "LINKONE KOR", year: 2025 },
-  { id: 3, mbl: "AMIGL240578329A", hbl: "NEOSHA24120058", type: "LCL", pol: "SHANGHAI, CHINA", pod: "CATLAI, HCM", shipper: "RICH SILK", cnee: "LIM VINA PRO", etd: "2025-12-09", eta: "2025-12-12", term: "FOB", status: "SOA - DONE!", agent: "NEO SHA", year: 2025 },
-  { id: 4, mbl: "AMIGL240586898A", hbl: "NEOSHA24120117", type: "LCL", pol: "SHANGHAI, CHINA", pod: "CATLAI, HCM", shipper: "SUZHOU HENGYUAN", cnee: "LIM VINA PRO", etd: "2025-12-12", eta: "~17 Dec", term: "FOB", status: "SOA - DONE!", agent: "NEO SHA", year: 2025 },
-  { id: 5, mbl: "NSSLBSHPC2402307", hbl: "LINK2412007", type: "20DC x 20", pol: "BUSAN, KOREA", pod: "HAI PHONG", shipper: "TKG HUCHEMS CO., LTD", cnee: "13 MECHANIC / HUNGAN", etd: "2025-12-15", eta: "2025-12-24", term: "CIF", status: "DONE!", agent: "LINKONE KOR", year: 2025 },
-  { id: 6, mbl: "AMIGL240612288A", hbl: "NEOSHA24120229", type: "LCL", pol: "SHANGHAI, CHINA", pod: "CATLAI, HCM", shipper: "SUZHOU HENGYUAN", cnee: "LIM VINA PRO", etd: "2025-12-28", eta: "2025-12-31", term: "FOB", status: "DONE! - DELIVERED 06 Jan", agent: "NEO SHA", year: 2025 },
-  { id: 7, mbl: "738-00224733", hbl: "NEASH2501002", type: "AIR", pol: "PVG - SHANGHAI", pod: "SGN, HCM", shipper: "SUZHOU HENGYUAN", cnee: "LIM VINA PRO", etd: "2025-01-03", eta: "2025-01-03", term: "CIF", status: "DONE!", agent: "NEO SHA", year: 2025 },
-  { id: 8, mbl: "NSSLBSHPC2500054", hbl: "LINK2501003", type: "20DC x 15", pol: "BUSAN, KOREA", pod: "HAI PHONG", shipper: "TKG HUCHEMS CO., LTD", cnee: "HUNGAN", etd: "2025-01-14", eta: "2025-01-22", term: "CIF", status: "Done!", agent: "LINKONE KOR", year: 2025 },
-  { id: 9, mbl: "AMIGL250004345A", hbl: "NEOSHA25010123", type: "LCL", pol: "SHANGHAI, CHINA", pod: "CATLAI, HCM", shipper: "SUZHOU HENGYUAN", cnee: "LIM VINA PRO", etd: "2025-01-14", eta: "2025-01-23", term: "FOB", status: "DONE!", agent: "NEO SHA", year: 2025 },
-  { id: 10, mbl: "NSSLBSHPC2500066", hbl: "LINK2501004", type: "20DC x 10", pol: "BUSAN, KOREA", pod: "HAI PHONG", shipper: "GREENCHEM CORP", cnee: "AHH JOINT STOCK", etd: "2025-01-16", eta: "2025-01-22", term: "CIF", status: "Done!", agent: "LINKONE KOR", year: 2025 },
-  { id: 22, mbl: "NSSLBSHPC2500642", hbl: "LINK2504002", type: "20DC x 15", pol: "BUSAN, KOREA", pod: "HP-> HCM", shipper: "GREENCHEM CORP", cnee: "AHH JOINT STOCK", etd: "2026-04-03", eta: "2026-04-08", term: "CIF", status: "DELIVERING", agent: "LINKONE KOR", year: 2026 },
-  { id: 23, mbl: "NSSLBSHPC2500711", hbl: "LINK2504005", type: "20DC x 5", pol: "BUSAN, KOREA", pod: "HP-> HCM", shipper: "GREENCHEM CORP", cnee: "AHH JOINT STOCK", etd: "2026-04-10", eta: "2026-04-18", term: "CIF", status: "IN TRANSIT", agent: "LINKONE KOR", year: 2026 },
-  { id: 46, mbl: "HASLK01251107311", hbl: "LSTN2512001", type: "1X40'H", pol: "BUSAN, KOREA", pod: "CATLAI, HCM", shipper: "SYPOLYTECH CO., LTD", cnee: "LS CABLE & SYSTEM", etd: "2025-12-03", eta: "2025-12-08", term: "CIF", status: "DONE", agent: "LOGISTONE", year: 2025 },
-  { id: 53, mbl: "HASLK01260103549", hbl: "ANCLSGN26010001", type: "1X20FT + 2X40'HQ", pol: "BUSAN, KOREA", pod: "CATLAI, HCM", shipper: "DAECHANG CORP", cnee: "THANG LOI IMPORT-EXPORT", etd: "2026-01-31", eta: "2026-02-05", term: "CIF", status: "DONE", agent: "ANC INTL", year: 2026 },
-  { id: 63, mbl: "HASLK01260400018", hbl: "LSTN26040002", type: "1x20GP", pol: "PYEONGTAEK, KOREA", pod: "HAI PHONG", shipper: "SY POLYTECH CO., LTD.", cnee: "LS-VINA CABLE", etd: "2026-04-13", eta: "2026-04-18", term: "CIF", status: "IN PROGRESS", agent: "LOGISTONE", year: 2026 },
-  { id: 66, mbl: "KMTCINC5342250", hbl: "DSN26040038", type: "1X40'H", pol: "INCHEON, KOREA", pod: "CATLAI, HCM", shipper: "KCONN CO., LTD.", cnee: "KM TECH ELECTRONICS CO,LTD", etd: "2026-04-18", eta: "2026-04-29", term: "DAP", status: "DONE", agent: "DAESUNG-DSL", year: 2026 },
-  { id: 68, mbl: "POBUPUS260481036", hbl: "ANCLSGN26040002", type: "4x40'H", pol: "BUSAN, KOREA", pod: "CATLAI, HCM", shipper: "DAECHANG CORP", cnee: "THANG LOI IMPORT-EXPORT", etd: "2026-04-26", eta: "2026-05-02", term: "CIF", status: "IN PROGRESS", agent: "ANC INTL", year: 2026 },
-  { id: 69, mbl: "AMIGL260181014A", hbl: "NEOSHA26040170", type: "LCL", pol: "SHANGHAI, CHINA", pod: "CATLAI, HCM", shipper: "RICH SILK TEXTILES LIMITED", cnee: "LIM VINA PRO", etd: "2026-05-06", eta: "2026-05-10", term: "FOB", status: "IN PROGRESS", agent: "NEO SHA", year: 2026 },
-  { id: 70, mbl: "HASLK01260406548", hbl: "LSTN26050001", type: "1X40'H", pol: "BUSAN, KOREA", pod: "CATLAI, HCM", shipper: "SYPOLYTECH CO., LTD", cnee: "LS CABLE & SYSTEM", etd: "2026-05-09", eta: "2026-05-15", term: "CIF", status: "PENDING", agent: "LOGISTONE", year: 2026 },
-  { id: 71, mbl: "AMIGL260202415A", hbl: "NEOSHA26050050", type: "LCL", pol: "SHANGHAI, CHINA", pod: "HAI PHONG", shipper: "MEIFAN INTL", cnee: "PGS VINA CO., LTD", etd: "2026-05-09", eta: "2026-05-16", term: "CNF", status: "PENDING", agent: "NEO SHA", year: 2026 },
-];
+const initialShipmentData = [];
 
-const initialConsigneeData = {
-  "LIM VINA PRO": { id: 1, name: "LIM VINA PRO", contact: "Mr. Lim", phone: "+84 28 1234 5678", email: "contact@limvina.com", address: "123 Industrial Zone, Binh Duong", taxId: "0123456789", notes: "Regular customer, prefers morning delivery", totalShipments: 25, lastShipment: "2026-05-10", status: "active" },
-  "LS CABLE & SYSTEM": { id: 2, name: "LS CABLE & SYSTEM", contact: "Ms. Nguyen", phone: "+84 28 9876 5432", email: "import@lscable.vn", address: "456 Tech Park, HCMC", taxId: "9876543210", notes: "Large volume customer", totalShipments: 12, lastShipment: "2026-05-15", status: "active" },
-  "HUNGAN": { id: 3, name: "HUNGAN", contact: "Mr. Hung", phone: "+84 24 5555 1234", email: "hungan@company.vn", address: "789 Hai Phong Industrial", taxId: "5555666677", notes: "", totalShipments: 8, lastShipment: "2026-01-22", status: "active" },
-  "AHH JOINT STOCK": { id: 4, name: "AHH JOINT STOCK", contact: "Ms. Anh", phone: "+84 28 7777 8888", email: "import@ahh.vn", address: "District 7, HCMC", taxId: "1234567890", notes: "Chemical imports", totalShipments: 15, lastShipment: "2026-04-18", status: "active" },
-  "THANG LOI IMPORT-EXPORT": { id: 5, name: "THANG LOI IMPORT-EXPORT", contact: "Mr. Thang", phone: "+84 28 3333 4444", email: "import@thangloi.vn", address: "District 2, HCMC", taxId: "2233445566", notes: "Steel and metal imports", totalShipments: 6, lastShipment: "2026-05-02", status: "active" },
-  "PGS VINA CO., LTD": { id: 6, name: "PGS VINA CO., LTD", contact: "Ms. Phuong", phone: "+84 24 6666 7777", email: "logistics@pgsvina.com", address: "Hai Phong Port Area", taxId: "3344556677", notes: "Textile materials", totalShipments: 5, lastShipment: "2026-05-16", status: "active" },
-  "BUMHAN CABLE": { id: 7, name: "BUMHAN CABLE", contact: "Mr. Kim", phone: "+84 236 888 9999", email: "import@bumhan.vn", address: "Da Nang Industrial Zone", taxId: "4455667788", notes: "Cable and wire imports", totalShipments: 4, lastShipment: "2025-12-17", status: "inactive" },
-  "KM TECH ELECTRONICS CO,LTD": { id: 8, name: "KM TECH ELECTRONICS CO,LTD", contact: "Mr. Minh", phone: "+84 28 2222 3333", email: "procurement@kmtech.vn", address: "Thu Duc City, HCMC", taxId: "5566778899", notes: "Electronic components", totalShipments: 1, lastShipment: "2026-04-29", status: "active" },
-};
+const initialConsigneeData = {};
 
-const initialAgentsData = [
-  { id: 1, name: "NEO SHA", code: "NEOSHA", country: "China", city: "Shanghai", contact: "Mr. Wang", phone: "+86 21 5555 1234", email: "operations@neosha.cn", address: "Room 1205, Shipping Tower, Pudong, Shanghai", services: ["LCL", "FCL", "AIR"], status: "active", colorKey: "blue" },
-  { id: 2, name: "LINKONE KOR", code: "LINK", country: "Korea", city: "Busan", contact: "Mr. Park", phone: "+82 51 777 8888", email: "booking@linkone.kr", address: "15F, Marine Center, Busan Port", services: ["FCL", "LCL"], status: "active", colorKey: "emerald" },
-  { id: 3, name: "LOGISTONE", code: "LSTN", country: "Korea", city: "Busan/Pyeongtaek", contact: "Ms. Kim", phone: "+82 31 555 6666", email: "import@logistone.kr", address: "Logistics Hub, Pyeongtaek Port", services: ["FCL", "LCL"], status: "active", colorKey: "purple" },
-  { id: 4, name: "ANC INTL", code: "ANCL", country: "Korea", city: "Busan", contact: "Mr. Lee", phone: "+82 51 333 4444", email: "sales@anc-intl.kr", address: "Trade Center, Busan", services: ["FCL", "LCL", "AIR"], status: "active", colorKey: "orange" },
-  { id: 5, name: "DAESUNG-DSL", code: "DSN", country: "Korea", city: "Incheon", contact: "Mr. Choi", phone: "+82 32 888 9999", email: "ops@daesung-dsl.kr", address: "Port Office Building, Incheon", services: ["FCL"], status: "active", colorKey: "rose" },
-  { id: 6, name: "NEO SHENZHEN", code: "NEOSZX", country: "China", city: "Shenzhen", contact: "Ms. Chen", phone: "+86 755 2222 3333", email: "shenzhen@neo.cn", address: "Shekou Port Area, Shenzhen", services: ["LCL", "FCL"], status: "active", colorKey: "cyan" },
-  { id: 7, name: "WOOSUNG A&S", code: "WSAS", country: "Korea", city: "Busan", contact: "Mr. Jung", phone: "+82 51 444 5555", email: "info@woosung-as.kr", address: "Maritime Building, Busan", services: ["FCL", "LCL"], status: "inactive", colorKey: "amber" },
-];
+const initialAgentsData = [];
 
-const initialDocuments = [
-  { id: 1, name: "Bill of Lading - NEOSHA26040170", type: "B/L", shipmentHbl: "NEOSHA26040170", uploadDate: "2026-05-01", size: "245 KB", status: "verified" },
-  { id: 2, name: "Commercial Invoice - LSTN26050001", type: "Invoice", shipmentHbl: "LSTN26050001", uploadDate: "2026-05-08", size: "128 KB", status: "pending" },
-  { id: 3, name: "Packing List - LINK2504005", type: "Packing List", shipmentHbl: "LINK2504005", uploadDate: "2026-04-05", size: "89 KB", status: "verified" },
-  { id: 4, name: "Certificate of Origin - ANCLSGN26040002", type: "C/O", shipmentHbl: "ANCLSGN26040002", uploadDate: "2026-04-20", size: "156 KB", status: "verified" },
-  { id: 5, name: "Insurance Certificate - NEOSHA26050050", type: "Insurance", shipmentHbl: "NEOSHA26050050", uploadDate: "2026-05-07", size: "112 KB", status: "pending" },
-  { id: 6, name: "Customs Declaration - LSTN26040002", type: "Customs", shipmentHbl: "LSTN26040002", uploadDate: "2026-04-15", size: "198 KB", status: "verified" },
-];
+const initialDocuments = [];
 
-const initialNotifications = [
-  { id: 1, type: "arrival", title: "Shipment Arriving Soon", message: "LSTN26050001 ETA: May 15, 2026", time: "2 hours ago", read: false, shipmentId: 70 },
-  { id: 2, type: "status", title: "Status Updated", message: "NEOSHA26040170 changed to IN PROGRESS", time: "5 hours ago", read: false, shipmentId: 69 },
-  { id: 3, type: "document", title: "Document Required", message: "Missing C/O for ANCLSGN26040002", time: "1 day ago", read: true, shipmentId: 68 },
-  { id: 4, type: "delay", title: "Potential Delay", message: "LINK2504005 may be delayed due to port congestion", time: "2 days ago", read: true, shipmentId: 23 },
-  { id: 5, type: "completed", title: "Shipment Completed", message: "DSN26040038 successfully delivered", time: "3 days ago", read: true, shipmentId: 66 },
-  { id: 6, type: "alert", title: "Payment Reminder", message: "Invoice due for LSTN26040002", time: "4 days ago", read: true, shipmentId: 63 },
-];
+const initialNotifications = [];
 
 const defaultSettings = {
   darkMode: false,
@@ -71,13 +19,14 @@ const defaultSettings = {
   soundAlerts: false,
   autoRefresh: true,
   language: "en",
-  dateFormat: "DD-MM-YYYY",
+  dateFormat: "MMM-DD-YYYY",
   timezone: "Asia/Ho_Chi_Minh",
   tableFacingMode: "urgency",
   shipmentViewMode: "table",
   consigneeViewMode: "table",
   agentViewMode: "table",
   notificationViewMode: "table",
+  hiddenShipmentColumns: [],
   tableSorts: {
     shipments: { key: "eta", direction: "asc" },
     agents: { key: "agent", direction: "asc" },
@@ -135,7 +84,7 @@ const isCompleted = (status) => {
   return s.includes('done') || s.includes('delivered') || s.includes('completed');
 };
 
-const formatDate = (dateString, format = 'YYYY-MM-DD') => {
+const formatDate = (dateString, format = 'MMM-DD-YYYY') => {
   // Handle relative time strings (e.g., "2 hours ago", "1 day ago")
   if (dateString && (dateString.includes('ago') || dateString.includes('hour') || dateString.includes('day'))) {
     return dateString;
@@ -151,6 +100,7 @@ const formatDate = (dateString, format = 'YYYY-MM-DD') => {
     const year = date.getUTCFullYear();
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const day = String(date.getUTCDate()).padStart(2, '0');
+    const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getUTCMonth()];
     
     if (format === 'DD-MM-YYYY') {
       return `${day}-${month}-${year}`;
@@ -158,6 +108,8 @@ const formatDate = (dateString, format = 'YYYY-MM-DD') => {
       return `${day}/${month}/${year}`;
     } else if (format === 'MM/DD/YYYY') {
       return `${month}/${day}/${year}`;
+    } else if (format === 'MMM-DD-YYYY') {
+      return `${monthShort}-${day}-${year}`;
     } else {
       // Default to YYYY-MM-DD
       return `${year}-${month}-${day}`;
@@ -211,6 +163,31 @@ const getTimeRemaining = (etaString, status) => {
 };
 
 const toSearchText = (value) => (value ?? '').toString().trim().toLowerCase();
+
+const timeAgo = (isoString) => {
+  if (!isoString) return '';
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return '1 day ago';
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months === 1) return '1 month ago';
+  return `${months} months ago`;
+};
+
+const formatDateTime = (isoString, format = 'MMM-DD-YYYY') => {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+  const pad = (n) => String(n).padStart(2, '0');
+  const datePart = formatDate(d.toISOString().slice(0, 10), format);
+  return `${datePart} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 const normalizeSettings = (value) => {
   const incoming = value && typeof value === 'object' ? value : {};
@@ -266,7 +243,7 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
   );
 };
 
-export default function ShipmentTracker() {
+function ShipmentTrackerApp({ onLogout }) {
   const [shipments, setShipments] = useState(initialShipmentData);
   const [consignees, setConsignees] = useState(initialConsigneeData);
   const [agentsData, setAgentsData] = useState(initialAgentsData);
@@ -276,6 +253,11 @@ export default function ShipmentTracker() {
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState('all');
+  const [shipmentFilters, setShipmentFilters] = useState({ status: [], type: [], term: [], pol: [], pod: [], agent: [], shipper: [], cnee: [] });
+  const [showShipmentFilterPanel, setShowShipmentFilterPanel] = useState(false);
+  const [showShipmentColumnsPanel, setShowShipmentColumnsPanel] = useState(false);
+  const shipmentFilterRef = useRef(null);
+  const shipmentColumnsRef = useRef(null);
   const [showActive, setShowActive] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -297,12 +279,33 @@ export default function ShipmentTracker() {
   const [agentForm, setAgentForm] = useState({ name: '', code: '', country: '', city: '', contact: '', phone: '', email: '', address: '', services: [], status: 'active', colorKey: 'blue' });
 
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, confirmText: '', confirmColor: '' });
+  const [shipmentNotes, setShipmentNotes] = useState({});
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteTargetShipment, setNoteTargetShipment] = useState(null);
+  const [noteText, setNoteText] = useState('');
+  const [showShipmentChoiceModal, setShowShipmentChoiceModal] = useState(false);
+  const [choiceTargetShipment, setChoiceTargetShipment] = useState(null);
   const [settings, setSettings] = useState(() => ({ ...defaultSettings }));
   const [isHydrated, setIsHydrated] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
   const [highlightedShipmentId, setHighlightedShipmentId] = useState(null);
   const [highlightedAgentId, setHighlightedAgentId] = useState(null);
   const [highlightedConsigneeName, setHighlightedConsigneeName] = useState(null);
+  
+  // Custom values management
+  const [customTypes, setCustomTypes] = useState([]);
+  const [customTerms, setCustomTerms] = useState([]);
+  const [customYears, setCustomYears] = useState([]);
+  const [shipmentsNeedingAttention, setShipmentsNeedingAttention] = useState({});
+  
+  // Custom value management modal states
+  const [showManageTypesModal, setShowManageTypesModal] = useState(false);
+  const [showManageTermsModal, setShowManageTermsModal] = useState(false);
+  const [showManageYearsModal, setShowManageYearsModal] = useState(false);
+  const [newCustomValue, setNewCustomValue] = useState('');
+  const [deleteSelectedValue, setDeleteSelectedValue] = useState('');
+  const [currentValueType, setCurrentValueType] = useState(null);
+  
   const fileInputRef = useRef(null);
 
   const viewMode = settings.shipmentViewMode || 'card';
@@ -312,6 +315,7 @@ export default function ShipmentTracker() {
   const tableFacingMode = settings.tableFacingMode || 'customer';
   const isUrgencyFacing = tableFacingMode === 'urgency';
   const tableSorts = settings.tableSorts || defaultSettings.tableSorts;
+  const hiddenShipmentColumns = Array.isArray(settings.hiddenShipmentColumns) ? settings.hiddenShipmentColumns : [];
 
   const sortItems = (items, sortConfig, getValue) => {
     const list = [...items];
@@ -371,7 +375,8 @@ export default function ShipmentTracker() {
     documents,
     notifications,
     settings,
-    activityLogs
+    activityLogs,
+    shipmentNotes
   });
 
   useEffect(() => {
@@ -386,6 +391,7 @@ export default function ShipmentTracker() {
         setDocuments(Array.isArray(data.documents) ? data.documents : initialDocuments);
         setNotifications(Array.isArray(data.notifications) ? data.notifications : initialNotifications);
         setActivityLogs(Array.isArray(data.activityLogs) ? data.activityLogs : []);
+        setShipmentNotes(data.shipmentNotes && typeof data.shipmentNotes === 'object' ? data.shipmentNotes : {});
         setSettings(normalizeSettings(data.settings));
       } catch (error) {
         setSyncMessage(error.message || 'Using local data because backend load failed.');
@@ -413,7 +419,7 @@ export default function ShipmentTracker() {
     }, 450);
 
     return () => clearTimeout(timeoutId);
-  }, [shipments, consignees, agentsData, documents, notifications, settings, activityLogs, isHydrated]);
+  }, [shipments, consignees, agentsData, documents, notifications, settings, activityLogs, shipmentNotes, isHydrated]);
 
   useEffect(() => {
     if (!syncMessage) return undefined;
@@ -427,6 +433,20 @@ export default function ShipmentTracker() {
       setSelectedAgent(null);
     }
   }, [activeMenu]);
+
+  useEffect(() => {
+    if (!showShipmentFilterPanel && !showShipmentColumnsPanel) return undefined;
+    const handleClickOutside = (e) => {
+      if (shipmentFilterRef.current && !shipmentFilterRef.current.contains(e.target)) {
+        setShowShipmentFilterPanel(false);
+      }
+      if (shipmentColumnsRef.current && !shipmentColumnsRef.current.contains(e.target)) {
+        setShowShipmentColumnsPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showShipmentFilterPanel, showShipmentColumnsPanel]);
 
   const handleExportData = async () => {
     const response = await fetch('/api/export');
@@ -465,6 +485,8 @@ export default function ShipmentTracker() {
       setAgentsData(Array.isArray(data.agentsData) ? data.agentsData : []);
       setDocuments(Array.isArray(data.documents) ? data.documents : []);
       setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
+      setActivityLogs(Array.isArray(data.activityLogs) ? data.activityLogs : []);
+      setShipmentNotes(data.shipmentNotes && typeof data.shipmentNotes === 'object' ? data.shipmentNotes : {});
       setSettings(normalizeSettings(data.settings));
       setSyncMessage('Import completed.');
     } catch (error) {
@@ -489,6 +511,8 @@ export default function ShipmentTracker() {
     setAgentsData([]);
     setDocuments([]);
     setNotifications([]);
+    setActivityLogs([]);
+    setShipmentNotes({});
     setSyncMessage('All data deleted.');
   };
 
@@ -505,8 +529,10 @@ export default function ShipmentTracker() {
     setAgentsData(Array.isArray(data.agentsData) ? data.agentsData : initialAgentsData);
     setDocuments(Array.isArray(data.documents) ? data.documents : initialDocuments);
     setNotifications(Array.isArray(data.notifications) ? data.notifications : initialNotifications);
+    setActivityLogs(Array.isArray(data.activityLogs) ? data.activityLogs : []);
+    setShipmentNotes(data.shipmentNotes && typeof data.shipmentNotes === 'object' ? data.shipmentNotes : {});
     setSettings(normalizeSettings(data.settings));
-    setSyncMessage('Seed data restored.');
+    setSyncMessage('Template data restored.');
   };
 
   const menuItems = [
@@ -558,8 +584,16 @@ export default function ShipmentTracker() {
         return searchableFields.some(field => toSearchText(field).includes(term));
       });
     }
+    if (shipmentFilters.status.length > 0) result = result.filter(s => shipmentFilters.status.includes(s.status));
+    if (shipmentFilters.type.length > 0) result = result.filter(s => shipmentFilters.type.includes(s.type));
+    if (shipmentFilters.term.length > 0) result = result.filter(s => shipmentFilters.term.includes(s.term));
+    if (shipmentFilters.pol.length > 0) result = result.filter(s => shipmentFilters.pol.includes(s.pol));
+    if (shipmentFilters.pod.length > 0) result = result.filter(s => shipmentFilters.pod.includes(s.pod));
+    if (shipmentFilters.agent.length > 0) result = result.filter(s => shipmentFilters.agent.includes(s.agent));
+    if (shipmentFilters.shipper.length > 0) result = result.filter(s => shipmentFilters.shipper.includes(s.shipper));
+    if (shipmentFilters.cnee.length > 0) result = result.filter(s => shipmentFilters.cnee.includes(s.cnee));
     return result;
-  }, [shipments, selectedAgent, searchTerm, selectedYear]);
+  }, [shipments, selectedAgent, searchTerm, selectedYear, shipmentFilters]);
 
   const filteredConsignees = useMemo(() => {
     let result = Object.values(consignees);
@@ -588,8 +622,44 @@ export default function ShipmentTracker() {
   const pendingShipments = useMemo(() => filteredShipments.filter(s => !isCompleted(s.status)), [filteredShipments]);
   const completedShipments = useMemo(() => filteredShipments.filter(s => isCompleted(s.status)), [filteredShipments]);
 
+  const shipmentFilterOptions = useMemo(() => ({
+    status: [...new Set(shipments.map(s => s.status).filter(Boolean))].sort(),
+    type: [...new Set(shipments.map(s => s.type).filter(Boolean))].sort(),
+    term: [...new Set(shipments.map(s => s.term).filter(Boolean))].sort(),
+    pol: [...new Set(shipments.map(s => s.pol).filter(Boolean))].sort(),
+    pod: [...new Set(shipments.map(s => s.pod).filter(Boolean))].sort(),
+    agent: [...new Set(shipments.map(s => s.agent).filter(Boolean))].sort(),
+    shipper: [...new Set(shipments.map(s => s.shipper).filter(Boolean))].sort(),
+    cnee: [...new Set(shipments.map(s => s.cnee).filter(Boolean))].sort(),
+  }), [shipments]);
+
+  const activeFilterCount = Object.values(shipmentFilters).reduce((acc, arr) => acc + arr.length, 0);
+
+  const isShipmentColumnVisible = (columnKey) => !hiddenShipmentColumns.includes(columnKey);
+
+  const toggleShipmentColumn = (columnKey) => {
+    setSettings(prev => {
+      const hidden = Array.isArray(prev.hiddenShipmentColumns) ? prev.hiddenShipmentColumns : [];
+      const isHidden = hidden.includes(columnKey);
+      const nextHidden = isHidden ? hidden.filter(key => key !== columnKey) : [...hidden, columnKey];
+      return { ...prev, hiddenShipmentColumns: nextHidden };
+    });
+  };
+
+  const visibleShipmentColumnCount = [
+    '_number', '_note', 'status', 'etd', 'eta', 'days', 'hblmbl', 'shipper', 'consignee', 'pol', 'pod', 'agent', 'type'
+  ].filter(isShipmentColumnVisible).length;
+
+  const toggleShipmentFilter = (category, value) => {
+    setShipmentFilters(prev => {
+      const current = prev[category];
+      return { ...prev, [category]: current.includes(value) ? current.filter(v => v !== value) : [...current, value] };
+    });
+  };
+
   const getShipmentSortValue = (shipment, key) => {
     if (key === 'status') return shipment.status;
+    if (key === 'etd') return Date.parse(shipment.etd) || shipment.etd;
     if (key === 'eta') return Date.parse(shipment.eta) || shipment.eta;
     if (key === 'days') {
       // Sort by actual numeric days remaining
@@ -672,6 +742,30 @@ export default function ShipmentTracker() {
     return { total: target.length, done, inProgress, pending: target.length - done - inProgress };
   }, [shipments, selectedAgent]);
 
+  const shipmentsWithNotes = useMemo(
+    () => filteredShipments
+      .filter(s => toSearchText(shipmentNotes[s.id]?.text))
+      .sort((a, b) => {
+        const etaA = a.eta ? new Date(a.eta + 'T00:00:00Z').getTime() : Infinity;
+        const etaB = b.eta ? new Date(b.eta + 'T00:00:00Z').getTime() : Infinity;
+        return etaA - etaB;
+      }),
+    [filteredShipments, shipmentNotes]
+  );
+
+  const notedShipmentRowMeta = useMemo(() => {
+    const pendingList = viewMode === 'table' ? pendingShipmentsForTable : pendingShipmentsForCard;
+    const completedList = viewMode === 'table' ? completedShipmentsForTable : completedShipmentsForCard;
+    const map = {};
+    pendingList.forEach((shipment, index) => {
+      map[shipment.id] = { section: 'Active', row: index + 1 };
+    });
+    completedList.forEach((shipment, index) => {
+      map[shipment.id] = { section: 'Completed', row: index + 1 };
+    });
+    return map;
+  }, [viewMode, pendingShipmentsForTable, pendingShipmentsForCard, completedShipmentsForTable, completedShipmentsForCard]);
+
   const agentChartData = useMemo(() => agents.map(agent => ({ name: agent.name, shipments: agent.shipments.length, completed: agent.shipments.filter(s => isCompleted(s.status)).length, active: agent.shipments.filter(s => !isCompleted(s.status)).length })), [agents]);
   const monthlyData = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, idx) => { const monthShipments = shipments.filter(s => new Date(s.eta).getMonth() === idx); return { name: month, total: monthShipments.length, completed: monthShipments.filter(s => isCompleted(s.status)).length }; }), [shipments]);
   const pieData = useMemo(() => [{ name: 'Completed', value: stats.done, color: '#10B981' }, { name: 'In Progress', value: stats.inProgress, color: '#F59E0B' }, { name: 'Pending', value: stats.pending, color: '#6B7280' }], [stats]);
@@ -748,8 +842,136 @@ export default function ShipmentTracker() {
     setShowShipmentModal(true);
   };
 
+  // Custom value management functions
+  const getShipmentsUsingValue = (field, value) => {
+    return shipments.filter(s => s[field] === value);
+  };
+
+  const handleAddCustomValue = (valueType) => {
+    if (!newCustomValue.trim()) {
+      alert('Please enter a value');
+      return;
+    }
+
+    const trimmedValue = newCustomValue.trim();
+    
+    if (valueType === 'type') {
+      if (customTypes.includes(trimmedValue) || ['LCL', 'AIR', '1x20GP', '1X40\'H', '40\'HQ'].includes(trimmedValue)) {
+        alert('This type already exists');
+        return;
+      }
+      setConfirmDialog({
+        isOpen: true,
+        title: 'Add New Type',
+        message: `Add new shipment type: "${trimmedValue}"?`,
+        confirmText: 'Add',
+        confirmColor: 'bg-blue-600 hover:bg-blue-700',
+        onConfirm: () => {
+          setCustomTypes(prev => [...prev, trimmedValue]);
+          setNewCustomValue('');
+          setConfirmDialog({ isOpen: false });
+          alert(`New type "${trimmedValue}" added successfully`);
+        }
+      });
+    } else if (valueType === 'term') {
+      if (customTerms.includes(trimmedValue) || ['FOB', 'CIF', 'CNF', 'DAP'].includes(trimmedValue)) {
+        alert('This term already exists');
+        return;
+      }
+      setConfirmDialog({
+        isOpen: true,
+        title: 'Add New Term',
+        message: `Add new shipment term: "${trimmedValue}"?`,
+        confirmText: 'Add',
+        confirmColor: 'bg-blue-600 hover:bg-blue-700',
+        onConfirm: () => {
+          setCustomTerms(prev => [...prev, trimmedValue]);
+          setNewCustomValue('');
+          setConfirmDialog({ isOpen: false });
+          alert(`New term "${trimmedValue}" added successfully`);
+        }
+      });
+    } else if (valueType === 'year') {
+      const yearNum = parseInt(trimmedValue);
+      if (!Number.isInteger(yearNum) || yearNum < 2000 || yearNum > 2100) {
+        alert('Please enter a valid year (2000-2100)');
+        return;
+      }
+      if (customYears.includes(yearNum) || [2025, 2026].includes(yearNum)) {
+        alert('This year already exists');
+        return;
+      }
+      setConfirmDialog({
+        isOpen: true,
+        title: 'Add New Year',
+        message: `Add new shipment year: ${yearNum}?`,
+        confirmText: 'Add',
+        confirmColor: 'bg-blue-600 hover:bg-blue-700',
+        onConfirm: () => {
+          setCustomYears(prev => [...prev, yearNum].sort((a, b) => a - b));
+          setNewCustomValue('');
+          setConfirmDialog({ isOpen: false });
+          alert(`New year ${yearNum} added successfully`);
+        }
+      });
+    }
+  };
+
+  const handleDeleteCustomValue = (valueType) => {
+    if (!deleteSelectedValue) {
+      alert('Please select a value to delete');
+      return;
+    }
+
+    const shipmentUsingValue = getShipmentsUsingValue(
+      valueType === 'type' ? 'type' : valueType === 'term' ? 'term' : 'year',
+      valueType === 'year' ? parseInt(deleteSelectedValue) : deleteSelectedValue
+    );
+
+    setConfirmDialog({
+      isOpen: true,
+      title: `Delete ${valueType.charAt(0).toUpperCase() + valueType.slice(1)}`,
+      message: shipmentUsingValue.length > 0
+        ? `This ${valueType} is used by ${shipmentUsingValue.length} shipment(s). Deleting will not remove it from existing shipments, but they will be marked as needing attention. Continue?`
+        : `Delete "${deleteSelectedValue}"?`,
+      confirmText: 'Delete',
+      confirmColor: 'bg-red-600 hover:bg-red-700',
+      onConfirm: () => {
+        if (valueType === 'type') {
+          setCustomTypes(prev => prev.filter(t => t !== deleteSelectedValue));
+        } else if (valueType === 'term') {
+          setCustomTerms(prev => prev.filter(t => t !== deleteSelectedValue));
+        } else if (valueType === 'year') {
+          setCustomYears(prev => prev.filter(y => y !== parseInt(deleteSelectedValue)));
+        }
+
+        // Mark shipments as needing attention
+        if (shipmentUsingValue.length > 0) {
+          const attentionMap = { ...shipmentsNeedingAttention };
+          shipmentUsingValue.forEach(s => {
+            attentionMap[s.id] = `${valueType} "${deleteSelectedValue}" was deleted`;
+          });
+          setShipmentsNeedingAttention(attentionMap);
+        }
+
+        setDeleteSelectedValue('');
+        setConfirmDialog({ isOpen: false });
+        alert(`${valueType.charAt(0).toUpperCase() + valueType.slice(1)} deleted. ${shipmentUsingValue.length > 0 ? `${shipmentUsingValue.length} shipment(s) need attention.` : ''}`);
+      }
+    });
+  };
+
+  const defaultTypes = ['LCL', 'AIR', '1x20GP', '1X40\'H', '40\'HQ'];
+  const defaultTerms = ['FOB', 'CIF', 'CNF', 'DAP'];
+  const defaultYears = [2025, 2026];
+
+  const allTypes = [...defaultTypes, ...customTypes];
+  const allTerms = [...defaultTerms, ...customTerms];
+  const allYears = [...defaultYears, ...customYears].sort((a, b) => a - b);
+
+
   const addActivityLog = (type, entityType, entityName, action, changes, snapshot = null) => {
-    const timestamp = new Date().toLocaleString();
+    const timestamp = new Date().toISOString();
     const log = {
       id: Date.now(),
       timestamp,
@@ -761,6 +983,19 @@ export default function ShipmentTracker() {
       ...(snapshot ? { snapshot } : {})
     };
     setActivityLogs(prev => [log, ...prev]);
+  };
+
+  const addNotificationItem = (type, title, message, shipmentId = null) => {
+    const item = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      type,
+      title,
+      message,
+      time: new Date().toISOString().slice(0, 10),
+      read: false,
+      ...(shipmentId ? { shipmentId } : {})
+    };
+    setNotifications(prev => [item, ...prev]);
   };
 
   const handleActivityLogClick = (log) => {
@@ -825,6 +1060,69 @@ export default function ShipmentTracker() {
     setEditingShipment(shipment);
     setShipmentForm({ ...shipment });
     setShowShipmentModal(true);
+  };
+
+  const handleShipmentRowClick = (shipment, e) => {
+    if (e) e.stopPropagation();
+    setChoiceTargetShipment(shipment);
+    setShowShipmentChoiceModal(true);
+  };
+
+  const handleOpenNoteModal = (shipment, e) => {
+    if (e) e.stopPropagation();
+    setNoteTargetShipment(shipment);
+    setNoteText(shipmentNotes[shipment.id]?.text || '');
+    setShowNoteModal(true);
+  };
+
+  const handleSaveNote = () => {
+    if (!noteTargetShipment) return;
+    const trimmedText = noteText.trim();
+    const existing = shipmentNotes[noteTargetShipment.id];
+
+    if (!trimmedText) {
+      if (existing?.text) {
+        setShipmentNotes(prev => {
+          const next = { ...prev };
+          delete next[noteTargetShipment.id];
+          return next;
+        });
+        addActivityLog('shipment', 'Shipment', noteTargetShipment.hbl, 'NOTE DELETED', 'Shipment note deleted');
+        addNotificationItem('status', 'Shipment Note Deleted', `${noteTargetShipment.hbl}: note removed`, noteTargetShipment.id);
+      }
+      setShowNoteModal(false);
+      return;
+    }
+
+    const now = new Date().toISOString();
+    setShipmentNotes(prev => ({
+      ...prev,
+      [noteTargetShipment.id]: {
+        text: trimmedText,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+      }
+    }));
+
+    const action = existing?.text ? 'NOTE UPDATED' : 'NOTE ADDED';
+    addActivityLog('shipment', 'Shipment', noteTargetShipment.hbl, action, `${action === 'NOTE ADDED' ? 'Added' : 'Updated'} note: ${trimmedText.slice(0, 120)}`);
+    addNotificationItem('status', action === 'NOTE ADDED' ? 'Shipment Note Added' : 'Shipment Note Updated', `${noteTargetShipment.hbl}: ${trimmedText.slice(0, 120)}`, noteTargetShipment.id);
+    setShowNoteModal(false);
+  };
+
+  const handleDeleteNote = () => {
+    if (!noteTargetShipment || !shipmentNotes[noteTargetShipment.id]?.text) {
+      setShowNoteModal(false);
+      return;
+    }
+    setShipmentNotes(prev => {
+      const next = { ...prev };
+      delete next[noteTargetShipment.id];
+      return next;
+    });
+    addActivityLog('shipment', 'Shipment', noteTargetShipment.hbl, 'NOTE DELETED', 'Shipment note deleted');
+    addNotificationItem('status', 'Shipment Note Deleted', `${noteTargetShipment.hbl}: note removed`, noteTargetShipment.id);
+    setShowNoteModal(false);
   };
 
   const handleSaveShipment = () => {
@@ -1017,61 +1315,116 @@ export default function ShipmentTracker() {
     }
   };
 
+  const handleCopyText = async (value, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (error) {
+      console.error('Failed to copy text', error);
+    }
+  };
+
   const ShipmentCard = ({ shipment }) => {
     const colors = resolveAgentColors(shipment.agent);
     const isHighlighted = highlightedShipmentId === shipment.id;
     return (
-      <div onClick={(e) => handleEditShipment(shipment, e)} className={`bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-all duration-700 cursor-pointer ${isHighlighted ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
+      <div onClick={(e) => handleShipmentRowClick(shipment, e)} className={`bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-all duration-700 cursor-pointer ${isHighlighted ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className={`p-2 ${colors.light} rounded-lg`}>{getShipmentIcon(shipment.type)}</div>
-            <div><div className="font-bold text-gray-900">{shipment.hbl}</div><div className="text-xs text-gray-500">{shipment.type}</div></div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <div className="font-bold text-gray-900">{shipment.hbl}</div>
+                <button onClick={(e) => handleCopyText(shipment.hbl, e)} title={`Copy ${shipment.hbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors">
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span>{shipment.mbl}</span>
+                <button onClick={(e) => handleCopyText(shipment.mbl, e)} title={`Copy ${shipment.mbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors">
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="text-xs text-gray-500">{shipment.type}</div>
+            </div>
           </div>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(shipment.status)}`}>{shipment.status.split(' ')[0]}</span>
+          <div className="flex items-center gap-1.5">
+            <button onClick={(e) => handleOpenNoteModal(shipment, e)} title="Note" className={`p-1 rounded transition-colors ${shipmentNotes[shipment.id]?.text ? 'text-amber-500 hover:text-amber-600' : 'text-gray-300 hover:text-gray-500'}`}><FileText className="w-4 h-4" /></button>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(shipment.status)}`}>{shipment.status.split(' ')[0]}</span>
+          </div>
         </div>
-        <div className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium mb-3`}>{shipment.agent}</div>
+        <div className="inline-flex items-center gap-1.5 mb-3">
+          <div className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</div>
+          <button onClick={(e) => handleCopyText(shipment.agent, e)} title={`Copy ${shipment.agent}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors">
+            <Copy className="w-3.5 h-3.5" />
+          </button>
+        </div>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2 text-gray-600"><Building className="w-3 h-3" /><span className="truncate">{shipment.shipper}</span></div>
-          <button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="flex items-center gap-2 text-blue-600 hover:underline"><User className="w-3 h-3" /><span className="truncate">{shipment.cnee}</span></button>
+          <div className="flex items-center gap-1.5">
+            <button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="flex items-center gap-2 text-blue-600 hover:underline min-w-0"><User className="w-3 h-3 flex-shrink-0" /><span className="truncate">{shipment.cnee}</span></button>
+            <button onClick={(e) => handleCopyText(shipment.cnee, e)} title={`Copy ${shipment.cnee}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors flex-shrink-0">
+              <Copy className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
+        {shipmentNotes[shipment.id]?.text && (
+          <div className="mt-2 px-2 py-1.5 bg-amber-50 border border-amber-100 rounded text-xs text-amber-800 line-clamp-2">{shipmentNotes[shipment.id].text}</div>
+        )}
         <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-500"><span>ETA: {formatDate(shipment.eta, settings.dateFormat)}</span><span className="font-semibold text-gray-700">{getTimeRemaining(shipment.eta, shipment.status)}</span><span>{shipment.term}</span></div>
       </div>
     );
   };
 
-  const ShipmentTableRow = ({ shipment }) => {
+  const ShipmentTableRow = ({ shipment, rowNumber }) => {
     const colors = resolveAgentColors(shipment.agent);
     const isHighlighted = highlightedShipmentId === shipment.id;
 
+    const noteCell = (
+      <td className="px-3 py-3 text-center">
+        <button onClick={(e) => handleOpenNoteModal(shipment, e)} title={shipmentNotes[shipment.id]?.text ? 'View/Edit Note' : 'Add Note'} className={`p-1 rounded transition-colors ${shipmentNotes[shipment.id]?.text ? 'text-amber-500 hover:text-amber-600' : 'text-gray-300 hover:text-gray-500'}`}><FileText className="w-4 h-4" /></button>
+      </td>
+    );
+
     if (isUrgencyFacing) {
       return (
-        <tr onClick={(e) => handleEditShipment(shipment, e)} className={`hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors duration-700 ${isHighlighted ? 'bg-yellow-100' : ''}`}>
-          <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(shipment.status)}`}>{shipment.status.split(' ')[0]}</span></td>
-          <td className="px-4 py-3 text-sm text-gray-600">{formatDate(shipment.eta, settings.dateFormat)}</td>
-          <td className="px-4 py-3 text-sm font-semibold text-orange-600">{getTimeRemaining(shipment.eta, shipment.status)}</td>
-          <td className="px-4 py-3"><div className="flex items-center gap-2"><div className={`p-1.5 ${colors.light} rounded`}>{getShipmentIcon(shipment.type)}</div><div><div className="font-medium text-gray-900">{shipment.hbl}</div><div className="text-xs text-gray-500">{shipment.mbl}</div></div></div></td>
-          <td className="px-4 py-3 text-sm text-gray-900">{shipment.shipper}</td>
-          <td className="px-4 py-3"><button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="text-sm text-blue-600 hover:underline">{shipment.cnee}</button></td>
-          <td className="px-4 py-3 text-sm text-gray-600">{shipment.pol}</td>
-          <td className="px-4 py-3 text-sm text-gray-600">{shipment.pod}</td>
-          <td className="px-4 py-3"><span className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</span></td>
-          <td className="px-4 py-3 text-sm text-gray-600">{shipment.type}</td>
+        <tr onClick={(e) => handleShipmentRowClick(shipment, e)} className={`hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors duration-700 ${isHighlighted ? 'bg-yellow-100' : ''}`}>
+          {isShipmentColumnVisible('_number') && <td className="px-3 py-3 text-xs font-semibold text-gray-500 text-center">{rowNumber}</td>}
+          {isShipmentColumnVisible('_note') && noteCell}
+          {isShipmentColumnVisible('status') && <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(shipment.status)}`}>{shipment.status.split(' ')[0]}</span></td>}
+          {isShipmentColumnVisible('etd') && <td className="px-4 py-3 text-sm text-gray-600">{formatDate(shipment.etd, settings.dateFormat)}</td>}
+          {isShipmentColumnVisible('eta') && <td className="px-4 py-3 text-sm text-gray-600">{formatDate(shipment.eta, settings.dateFormat)}</td>}
+          {isShipmentColumnVisible('days') && <td className="px-4 py-3 text-sm font-semibold text-orange-600">{getTimeRemaining(shipment.eta, shipment.status)}</td>}
+          {isShipmentColumnVisible('hblmbl') && <td className="px-4 py-3"><div className="flex items-center gap-2"><div className={`p-1.5 ${colors.light} rounded`}>{getShipmentIcon(shipment.type)}</div><div><div className="flex items-center gap-1.5"><div className="font-medium text-gray-900">{shipment.hbl}</div><button onClick={(e) => handleCopyText(shipment.hbl, e)} title={`Copy ${shipment.hbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div><div className="flex items-center gap-1.5 text-xs text-gray-500"><span>{shipment.mbl}</span><button onClick={(e) => handleCopyText(shipment.mbl, e)} title={`Copy ${shipment.mbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></div></div></td>}
+          {isShipmentColumnVisible('shipper') && <td className="px-4 py-3 text-sm text-gray-900">{shipment.shipper}</td>}
+          {isShipmentColumnVisible('consignee') && <td className="px-4 py-3"><div className="flex items-center gap-1.5"><button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="text-sm text-blue-600 hover:underline">{shipment.cnee}</button><button onClick={(e) => handleCopyText(shipment.cnee, e)} title={`Copy ${shipment.cnee}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></td>}
+          {isShipmentColumnVisible('pol') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.pol}</td>}
+          {isShipmentColumnVisible('pod') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.pod}</td>}
+          {isShipmentColumnVisible('agent') && <td className="px-4 py-3"><div className="inline-flex items-center gap-1.5"><span className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</span><button onClick={(e) => handleCopyText(shipment.agent, e)} title={`Copy ${shipment.agent}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></td>}
+          {isShipmentColumnVisible('type') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.type}</td>}
         </tr>
       );
     }
 
     return (
-      <tr onClick={(e) => handleEditShipment(shipment, e)} className={`hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors duration-700 ${isHighlighted ? 'bg-yellow-100' : ''}`}>
-        <td className="px-4 py-3"><div className="flex items-center gap-2"><div className={`p-1.5 ${colors.light} rounded`}>{getShipmentIcon(shipment.type)}</div><div><div className="font-medium text-gray-900">{shipment.hbl}</div><div className="text-xs text-gray-500">{shipment.mbl}</div></div></div></td>
-        <td className="px-4 py-3"><span className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</span></td>
-        <td className="px-4 py-3 text-sm text-gray-600">{shipment.type}</td>
-        <td className="px-4 py-3 text-sm text-gray-900">{shipment.shipper}</td>
-        <td className="px-4 py-3"><button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="text-sm text-blue-600 hover:underline">{shipment.cnee}</button></td>
-        <td className="px-4 py-3 text-sm text-gray-600">{shipment.pol}</td>
-        <td className="px-4 py-3 text-sm text-gray-600">{shipment.pod}</td>
-        <td className="px-4 py-3 text-sm text-gray-600">{formatDate(shipment.eta, settings.dateFormat)}</td>
-        <td className="px-4 py-3 text-sm font-semibold text-orange-600">{getTimeRemaining(shipment.eta, shipment.status)}</td>
-        <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(shipment.status)}`}>{shipment.status.split(' ')[0]}</span></td>
+      <tr onClick={(e) => handleShipmentRowClick(shipment, e)} className={`hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors duration-700 ${isHighlighted ? 'bg-yellow-100' : ''}`}>
+        {isShipmentColumnVisible('_number') && <td className="px-3 py-3 text-xs font-semibold text-gray-500 text-center">{rowNumber}</td>}
+        {isShipmentColumnVisible('hblmbl') && <td className="px-4 py-3"><div className="flex items-center gap-2"><div className={`p-1.5 ${colors.light} rounded`}>{getShipmentIcon(shipment.type)}</div><div><div className="flex items-center gap-1.5"><div className="font-medium text-gray-900">{shipment.hbl}</div><button onClick={(e) => handleCopyText(shipment.hbl, e)} title={`Copy ${shipment.hbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div><div className="flex items-center gap-1.5 text-xs text-gray-500"><span>{shipment.mbl}</span><button onClick={(e) => handleCopyText(shipment.mbl, e)} title={`Copy ${shipment.mbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></div></div></td>}
+        {isShipmentColumnVisible('agent') && <td className="px-4 py-3"><div className="inline-flex items-center gap-1.5"><span className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</span><button onClick={(e) => handleCopyText(shipment.agent, e)} title={`Copy ${shipment.agent}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></td>}
+        {isShipmentColumnVisible('type') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.type}</td>}
+        {isShipmentColumnVisible('shipper') && <td className="px-4 py-3 text-sm text-gray-900">{shipment.shipper}</td>}
+        {isShipmentColumnVisible('consignee') && <td className="px-4 py-3"><div className="flex items-center gap-1.5"><button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="text-sm text-blue-600 hover:underline">{shipment.cnee}</button><button onClick={(e) => handleCopyText(shipment.cnee, e)} title={`Copy ${shipment.cnee}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></td>}
+        {isShipmentColumnVisible('pol') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.pol}</td>}
+        {isShipmentColumnVisible('pod') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.pod}</td>}
+        {isShipmentColumnVisible('etd') && <td className="px-4 py-3 text-sm text-gray-600">{formatDate(shipment.etd, settings.dateFormat)}</td>}
+        {isShipmentColumnVisible('eta') && <td className="px-4 py-3 text-sm text-gray-600">{formatDate(shipment.eta, settings.dateFormat)}</td>}
+        {isShipmentColumnVisible('days') && <td className="px-4 py-3 text-sm font-semibold text-orange-600">{getTimeRemaining(shipment.eta, shipment.status)}</td>}
+        {isShipmentColumnVisible('_note') && noteCell}
+        {isShipmentColumnVisible('status') && <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(shipment.status)}`}>{shipment.status.split(' ')[0]}</span></td>}
       </tr>
     );
   };
@@ -1079,7 +1432,10 @@ export default function ShipmentTracker() {
   const ShipmentTable = ({ shipments: tableShipments }) => {
     const headers = isUrgencyFacing
       ? [
+          { key: '_number', label: '#' },
+          { key: '_note', label: '' },
           { key: 'status', label: 'Status' },
+          { key: 'etd', label: 'ETD' },
           { key: 'eta', label: 'ETA' },
           { key: 'days', label: 'Days' },
           { key: 'hblmbl', label: 'HBL/MBL' },
@@ -1091,6 +1447,7 @@ export default function ShipmentTracker() {
           { key: 'type', label: 'Type' }
         ]
       : [
+          { key: '_number', label: '#' },
           { key: 'hblmbl', label: 'HBL/MBL' },
           { key: 'agent', label: 'Agent' },
           { key: 'type', label: 'Type' },
@@ -1098,10 +1455,13 @@ export default function ShipmentTracker() {
           { key: 'consignee', label: 'Consignee' },
           { key: 'pol', label: 'POL' },
           { key: 'pod', label: 'POD' },
+          { key: 'etd', label: 'ETD' },
           { key: 'eta', label: 'ETA' },
           { key: 'days', label: 'Days' },
+          { key: '_note', label: '' },
           { key: 'status', label: 'Status' }
         ];
+    const visibleHeaders = headers.filter(header => isShipmentColumnVisible(header.key));
 
     return (
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -1109,17 +1469,21 @@ export default function ShipmentTracker() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {headers.map(header => (
-                  <th key={header.key} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    <button onClick={() => updateTableSort('shipments', header.key)} className="inline-flex items-center gap-1 hover:text-gray-900">
-                      {header.label}
-                      {renderSortArrow('shipments', header.key)}
-                    </button>
-                  </th>
+                {visibleHeaders.map(header => (
+                  header.key === '_number'
+                    ? <th key="_number" className="px-3 py-3 w-12 text-center text-xs font-semibold text-gray-600 uppercase">#</th>
+                    : header.key === '_note'
+                    ? <th key="_note" className="px-3 py-3 w-10 text-center"><FileText className="w-4 h-4 text-gray-400 inline" /></th>
+                    : <th key={header.key} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                        <button onClick={() => updateTableSort('shipments', header.key)} className="inline-flex items-center gap-1 hover:text-gray-900">
+                          {header.label}
+                          {renderSortArrow('shipments', header.key)}
+                        </button>
+                      </th>
                 ))}
               </tr>
             </thead>
-            <tbody>{tableShipments.map(s => <ShipmentTableRow key={s.id} shipment={s} />)}</tbody>
+            <tbody>{tableShipments.map((s, index) => <ShipmentTableRow key={s.id} shipment={s} rowNumber={index + 1} />)}</tbody>
           </table>
         </div>
       </div>
@@ -1353,7 +1717,144 @@ export default function ShipmentTracker() {
         <button onClick={() => setSelectedAgent(null)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${!selectedAgent ? 'bg-slate-900 text-white' : 'bg-transparent text-slate-600 hover:bg-slate-100'}`}>All Agents</button>
         {agents.map(agent => { const colors = resolveAgentColors(agent.name); const isSelected = selectedAgent?.name === agent.name; return (<button key={agent.name} onClick={() => setSelectedAgent(agent)} className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${isSelected ? `${colors.bg} text-white` : `${colors.light} ${colors.text} border ${colors.border} hover:opacity-90`}`}>{agent.name}<span className={`px-1.5 py-0.5 rounded-sm text-xs ${isSelected ? 'bg-white/20 text-white' : 'bg-white/70 text-slate-600'}`}>{agent.shipments.length}</span></button>); })}
       </div>
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"><div className="flex flex-col md:flex-row gap-4"><div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Search shipments..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg" /></div><select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg"><option value="all">All Years</option><option value="2025">2025</option><option value="2026">2026</option></select></div></div>
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input type="text" placeholder="Search shipments..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg" />
+          </div>
+          <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg">
+            <option value="all">All Years</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+          <div className="relative" ref={shipmentFilterRef}>
+            <button
+              onClick={() => setShowShipmentFilterPanel(prev => !prev)}
+              title="Filter shipments"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${activeFilterCount > 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+            >
+              <Filter className="w-4 h-4" />
+              {activeFilterCount > 0 && <span className="text-xs font-semibold">{activeFilterCount}</span>}
+            </button>
+            {showShipmentFilterPanel && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl border border-gray-200 shadow-lg z-50 p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-800 text-sm">Filter Shipments</span>
+                  {activeFilterCount > 0 && (
+                    <button onClick={() => setShipmentFilters({ status: [], type: [], term: [], pol: [], pod: [], agent: [], shipper: [], cnee: [] })} className="text-xs text-red-500 hover:text-red-700">Clear all</button>
+                  )}
+                </div>
+                {[
+                  { key: 'status', label: 'Status' },
+                  { key: 'type', label: 'Type' },
+                  { key: 'term', label: 'Term' },
+                  { key: 'agent', label: 'Agent' },
+                  { key: 'shipper', label: 'Shipper' },
+                  { key: 'cnee', label: 'Consignee' },
+                  { key: 'pol', label: 'Port of Loading' },
+                  { key: 'pod', label: 'Port of Discharge' },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{label}</p>
+                    <div className="space-y-1.5">
+                      {shipmentFilterOptions[key].map(val => (
+                        <label key={val} className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={shipmentFilters[key].includes(val)}
+                            onChange={() => toggleShipmentFilter(key, val)}
+                            className="w-4 h-4 rounded accent-slate-800"
+                          />
+                          <span className="text-sm text-gray-700 group-hover:text-gray-900 truncate">{val}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="relative" ref={shipmentColumnsRef}>
+            <button
+              onClick={() => setShowShipmentColumnsPanel(prev => !prev)}
+              title="Show or hide columns"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${hiddenShipmentColumns.length > 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+            >
+              <Table className="w-4 h-4" />
+              <span>Columns</span>
+              {hiddenShipmentColumns.length > 0 && <span className="text-xs font-semibold">{visibleShipmentColumnCount}</span>}
+            </button>
+            {showShipmentColumnsPanel && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl border border-gray-200 shadow-lg z-50 p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-800 text-sm">Visible Columns</span>
+                  {hiddenShipmentColumns.length > 0 && (
+                    <button onClick={() => setSettings(prev => ({ ...prev, hiddenShipmentColumns: [] }))} className="text-xs text-blue-600 hover:text-blue-700">Show all</button>
+                  )}
+                </div>
+                {[
+                  { key: '_number', label: 'No.' },
+                  { key: 'hblmbl', label: 'HBL/MBL' },
+                  { key: 'agent', label: 'Agent' },
+                  { key: 'type', label: 'Type' },
+                  { key: 'shipper', label: 'Shipper' },
+                  { key: 'consignee', label: 'Consignee' },
+                  { key: 'pol', label: 'POL' },
+                  { key: 'pod', label: 'POD' },
+                  { key: 'etd', label: 'ETD' },
+                  { key: 'eta', label: 'ETA' },
+                  { key: 'days', label: 'Days' },
+                  { key: '_note', label: 'Note' },
+                  { key: 'status', label: 'Status' },
+                ].map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={isShipmentColumnVisible(key)}
+                      onChange={() => toggleShipmentColumn(key)}
+                      className="w-4 h-4 rounded accent-slate-800"
+                    />
+                    <span className="text-sm text-gray-700 group-hover:text-gray-900">{label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {shipmentsWithNotes.length > 0 && (
+        <div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-amber-900 flex items-center gap-2"><FileText className="w-4 h-4" />Noted Shipments ({shipmentsWithNotes.length})</h3>
+          </div>
+          <div className="space-y-2">
+            {shipmentsWithNotes.slice(0, 5).map(shipment => (
+              <button
+                key={shipment.id}
+                onClick={() => {
+                  if (isCompleted(shipment.status)) setShowCompleted(true);
+                  else setShowActive(true);
+                  highlightShipment(shipment.id);
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg border border-amber-100 bg-white/70 hover:bg-white transition-colors"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-gray-900 flex items-center gap-1.5"><span>{shipment.hbl}</span>{notedShipmentRowMeta[shipment.id] ? <span className="text-xs text-amber-700">#{notedShipmentRowMeta[shipment.id].row}</span> : null}</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {(() => { const d = getTimeRemaining(shipment.eta, shipment.status); const isOverdue = d === 'Overdue'; const isCompleted2 = d === 'Completed'; return <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${isOverdue ? 'bg-red-100 text-red-700' : isCompleted2 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{d}</span>; })()}
+                    <span className="text-xs text-amber-700">{timeAgo(shipmentNotes[shipment.id]?.updatedAt || shipmentNotes[shipment.id]?.createdAt)}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600 truncate mt-1">{shipmentNotes[shipment.id]?.text}</p>
+              </button>
+            ))}
+            {shipmentsWithNotes.length > 5 && (
+              <p className="text-xs text-amber-700">Showing 5 latest notes.</p>
+            )}
+          </div>
+        </div>
+      )}
       <div>
         <button onClick={() => setShowActive(prev => !prev)} className="w-full text-left text-lg font-semibold text-gray-900 mb-4 flex items-center justify-between gap-2">
           <span className="flex items-center gap-2"><Package className="w-5 h-5 text-yellow-600" />Active Shipments ({pendingShipments.length})</span>
@@ -1485,7 +1986,7 @@ export default function ShipmentTracker() {
                 ) : (
                   activityLogs.map(log => (
                     <tr key={log.id} onClick={() => handleActivityLogClick(log)} className={`border-b border-gray-100 cursor-pointer transition-colors duration-200 ${log.action === 'DELETED' && log.snapshot ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-blue-50'}`}>
-                      <td className="px-4 py-3 text-sm text-gray-600">{log.timestamp}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{formatDateTime(log.timestamp, settings.dateFormat)}</td>
                       <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${log.type === 'shipment' ? 'bg-blue-100 text-blue-800' : log.type === 'agent' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>{log.entityType}</span></td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{log.entityName}</td>
                       <td className="px-4 py-3 flex items-center gap-1.5"><span className={`px-2 py-1 rounded text-xs font-medium ${log.action === 'CREATED' ? 'bg-green-100 text-green-700' : log.action === 'DELETED' ? 'bg-red-100 text-red-700' : log.action === 'MARKED COMPLETE' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>{log.action}</span>{log.action === 'DELETED' && log.snapshot && <span className="text-xs text-red-500 font-medium">↩ Undo</span>}</td>
@@ -1582,7 +2083,7 @@ export default function ShipmentTracker() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Language</label><select value={settings.language} onChange={(e) => updateSettings({ language: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="en">English</option><option value="vi">Vietnamese</option><option value="zh">Chinese</option><option value="ko">Korean</option></select></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label><select value={settings.timezone} onChange={(e) => updateSettings({ timezone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="Asia/Ho_Chi_Minh">Vietnam (GMT+7)</option><option value="Asia/Shanghai">China (GMT+8)</option><option value="Asia/Seoul">Korea (GMT+9)</option></select></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Date Format</label><select value={settings.dateFormat} onChange={(e) => updateSettings({ dateFormat: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="YYYY-MM-DD">YYYY-MM-DD</option><option value="DD-MM-YYYY">DD-MM-YYYY</option><option value="DD/MM/YYYY">DD/MM/YYYY</option><option value="MM/DD/YYYY">MM/DD/YYYY</option></select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Date Format</label><select value={settings.dateFormat} onChange={(e) => updateSettings({ dateFormat: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="MMM-DD-YYYY">MMM-DD-YYYY</option><option value="YYYY-MM-DD">YYYY-MM-DD</option><option value="DD-MM-YYYY">DD-MM-YYYY</option><option value="DD/MM/YYYY">DD/MM/YYYY</option><option value="MM/DD/YYYY">MM/DD/YYYY</option></select></div>
           </div>
         </div>
 
@@ -1634,7 +2135,7 @@ export default function ShipmentTracker() {
       <aside className={`fixed left-0 top-0 h-full bg-gray-900 text-white transition-all duration-300 z-50 flex flex-col ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">{!sidebarCollapsed && <div className="flex items-center gap-2"><Ship className="w-8 h-8 text-blue-400" /><span className="font-bold text-lg">MEE Tracker</span></div>}<button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="p-2 hover:bg-gray-800 rounded-lg">{sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}</button></div>
         <nav className="flex-1 p-2 space-y-1">{menuItems.map(item => (<button key={item.id} onClick={() => setActiveMenu(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative ${activeMenu === item.id ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} title={sidebarCollapsed ? item.label : undefined}><item.icon className="w-5 h-5 flex-shrink-0" />{!sidebarCollapsed && <span>{item.label}</span>}{item.badge > 0 && <span className={`${sidebarCollapsed ? 'absolute -top-1 -right-1' : 'ml-auto'} bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full`}>{item.badge}</span>}</button>))}</nav>
-        <div className="p-2 border-t border-gray-700 space-y-1">{bottomMenuItems.map(item => (<button key={item.id} onClick={() => setActiveMenu(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${activeMenu === item.id ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} title={sidebarCollapsed ? item.label : undefined}><item.icon className="w-5 h-5 flex-shrink-0" />{!sidebarCollapsed && <span>{item.label}</span>}</button>))}</div>
+        <div className="p-2 border-t border-gray-700 space-y-1">{bottomMenuItems.map(item => (<button key={item.id} onClick={() => setActiveMenu(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${activeMenu === item.id ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} title={sidebarCollapsed ? item.label : undefined}><item.icon className="w-5 h-5 flex-shrink-0" />{!sidebarCollapsed && <span>{item.label}</span>}</button>))}<button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-gray-400 hover:bg-gray-800 hover:text-white" title={sidebarCollapsed ? 'Logout' : undefined}><LogOut className="w-5 h-5 flex-shrink-0" />{!sidebarCollapsed && <span>Logout</span>}</button></div>
       </aside>
 
       <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
@@ -1664,11 +2165,38 @@ export default function ShipmentTracker() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Agent *</label><select value={shipmentForm.agent} onChange={(e) => setShipmentForm(prev => ({ ...prev, agent: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="">Select Agent</option>{agentsData.filter(a => a.status === 'active').map(agent => <option key={agent.id} value={agent.name}>{agent.name}</option>)}</select></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Year *</label><select value={shipmentForm.year} onChange={(e) => setShipmentForm(prev => ({ ...prev, year: parseInt(e.target.value) }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value={2025}>2025</option><option value={2026}>2026</option></select></div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Year *</label>
+              <div className="flex gap-2">
+                <select value={shipmentForm.year} onChange={(e) => setShipmentForm(prev => ({ ...prev, year: parseInt(e.target.value) }))} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+                  {allYears.map(year => <option key={year} value={year}>{year}</option>)}
+                </select>
+                <button onClick={() => { setCurrentValueType('year'); setShowManageYearsModal(true); }} className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium" title="Manage years"><Edit2 className="w-4 h-4" /></button>
+              </div>
+              {shipmentsNeedingAttention[editingShipment?.id] && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{shipmentsNeedingAttention[editingShipment.id]}</p>}
+            </div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">HBL *</label><input type="text" value={shipmentForm.hbl} onChange={(e) => setShipmentForm(prev => ({ ...prev, hbl: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="e.g., NEOSHA26050001" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">MBL</label><input type="text" value={shipmentForm.mbl} onChange={(e) => setShipmentForm(prev => ({ ...prev, mbl: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Master Bill of Lading" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Type *</label><select value={shipmentForm.type} onChange={(e) => setShipmentForm(prev => ({ ...prev, type: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="LCL">LCL</option><option value="AIR">AIR</option><option value="1x20GP">1x20GP</option><option value="1X40'H">1X40'H</option><option value="40'HQ">40'HQ</option></select></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Term *</label><select value={shipmentForm.term} onChange={(e) => setShipmentForm(prev => ({ ...prev, term: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="FOB">FOB</option><option value="CIF">CIF</option><option value="CNF">CNF</option><option value="DAP">DAP</option></select></div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+              <div className="flex gap-2">
+                <select value={shipmentForm.type} onChange={(e) => setShipmentForm(prev => ({ ...prev, type: e.target.value }))} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+                  {allTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                </select>
+                <button onClick={() => { setCurrentValueType('type'); setShowManageTypesModal(true); }} className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium" title="Manage types"><Edit2 className="w-4 h-4" /></button>
+              </div>
+              {shipmentsNeedingAttention[editingShipment?.id] && shipmentForm.type && customTypes.includes(shipmentForm.type) && <p className="text-xs text-orange-500 mt-1">⚠ Custom type</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Term *</label>
+              <div className="flex gap-2">
+                <select value={shipmentForm.term} onChange={(e) => setShipmentForm(prev => ({ ...prev, term: e.target.value }))} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+                  {allTerms.map(term => <option key={term} value={term}>{term}</option>)}
+                </select>
+                <button onClick={() => { setCurrentValueType('term'); setShowManageTermsModal(true); }} className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium" title="Manage terms"><Edit2 className="w-4 h-4" /></button>
+              </div>
+              {shipmentsNeedingAttention[editingShipment?.id] && shipmentForm.term && customTerms.includes(shipmentForm.term) && <p className="text-xs text-orange-500 mt-1">⚠ Custom term</p>}
+            </div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">POL *</label><input type="text" value={shipmentForm.pol} onChange={(e) => setShipmentForm(prev => ({ ...prev, pol: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="e.g., SHANGHAI, CHINA" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">POD *</label><input type="text" value={shipmentForm.pod} onChange={(e) => setShipmentForm(prev => ({ ...prev, pod: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="e.g., CATLAI, HCM" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Shipper *</label><input type="text" value={shipmentForm.shipper} onChange={(e) => setShipmentForm(prev => ({ ...prev, shipper: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Shipper name" /></div>
@@ -1680,6 +2208,74 @@ export default function ShipmentTracker() {
           <div className="flex justify-between gap-3 pt-4 border-t border-gray-200"><div>{editingShipment && <button onClick={handleDeleteShipment} className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" />Delete</button>}</div><div className="flex gap-3"><button onClick={() => setShowShipmentModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>{editingShipment && !isCompleted(editingShipment.status) && <button onClick={handleMarkComplete} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Mark Complete</button>}<button onClick={handleSaveShipment} disabled={!shipmentForm.agent || !shipmentForm.hbl || !shipmentForm.cnee} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"><Save className="w-4 h-4" />{editingShipment ? 'Save' : 'Add'}</button></div></div>
         </div>
       </Modal>
+
+        {/* Shipment Choice Modal */}
+        {showShipmentChoiceModal && choiceTargetShipment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-md" onClick={() => setShowShipmentChoiceModal(false)}>
+            <div className="bg-white rounded-2xl border border-white/70 shadow-2xl shadow-slate-900/30 w-[min(96vw,22rem)] overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Shipment</p>
+                  <h2 className="text-base font-semibold text-slate-900">{choiceTargetShipment.hbl}</h2>
+                </div>
+                <button onClick={() => setShowShipmentChoiceModal(false)} className="rounded-full border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-4 space-y-2">
+                <button
+                  onClick={() => { setShowShipmentChoiceModal(false); handleEditShipment(choiceTargetShipment); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:bg-slate-50 text-left transition-colors"
+                >
+                  <Edit2 className="w-5 h-5 text-slate-500" />
+                  <div><div className="font-medium text-slate-900 text-sm">Edit Shipment</div><div className="text-xs text-slate-500">Modify shipment details</div></div>
+                </button>
+                <button
+                  onClick={() => { setShowShipmentChoiceModal(false); handleOpenNoteModal(choiceTargetShipment); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:bg-amber-50 text-left transition-colors"
+                >
+                  <FileText className={`w-5 h-5 ${shipmentNotes[choiceTargetShipment.id]?.text ? 'text-amber-500' : 'text-slate-400'}`} />
+                  <div>
+                    <div className="font-medium text-slate-900 text-sm">{shipmentNotes[choiceTargetShipment.id]?.text ? 'View / Edit Note' : 'Add Note'}</div>
+                    <div className="text-xs text-slate-500">{shipmentNotes[choiceTargetShipment.id]?.text ? `Updated ${timeAgo(shipmentNotes[choiceTargetShipment.id].updatedAt)}` : 'No note yet'}</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Note Modal */}
+        <Modal isOpen={showNoteModal} onClose={() => setShowNoteModal(false)} title={`Note — ${noteTargetShipment?.hbl || ''}`} size="sm">
+          <div className="space-y-4">
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              rows={6}
+              placeholder="Write a note for this shipment..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-slate-400"
+            />
+            {noteTargetShipment && shipmentNotes[noteTargetShipment.id] && (
+              <div className="text-xs text-gray-500 space-y-1 bg-gray-50 rounded-lg px-3 py-2">
+                {shipmentNotes[noteTargetShipment.id].createdAt && (
+                  <div className="flex justify-between"><span className="font-medium text-gray-600">Created</span><span>{formatDateTime(shipmentNotes[noteTargetShipment.id].createdAt, settings.dateFormat)} &bull; {timeAgo(shipmentNotes[noteTargetShipment.id].createdAt)}</span></div>
+                )}
+                {shipmentNotes[noteTargetShipment.id].updatedAt && shipmentNotes[noteTargetShipment.id].updatedAt !== shipmentNotes[noteTargetShipment.id].createdAt && (
+                  <div className="flex justify-between"><span className="font-medium text-gray-600">Updated</span><span>{formatDateTime(shipmentNotes[noteTargetShipment.id].updatedAt, settings.dateFormat)} &bull; {timeAgo(shipmentNotes[noteTargetShipment.id].updatedAt)}</span></div>
+                )}
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+              <div>
+                {noteTargetShipment && shipmentNotes[noteTargetShipment.id]?.text && (
+                  <button onClick={handleDeleteNote} className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" />Delete note</button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setShowNoteModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button onClick={handleSaveNote} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-slate-900 text-white rounded-lg hover:bg-slate-800"><Save className="w-4 h-4" />Save</button>
+              </div>
+            </div>
+          </div>
+        </Modal>
 
       <Modal isOpen={showAgentModal} onClose={() => setShowAgentModal(false)} title={editingAgent ? `Edit: ${editingAgent.name}` : 'Add New Agent'}>
         <div className="space-y-4">
@@ -1700,8 +2296,263 @@ export default function ShipmentTracker() {
         </div>
       </Modal>
 
+      {/* Manage Types Modal */}
+      <Modal isOpen={showManageTypesModal} onClose={() => { setShowManageTypesModal(false); setNewCustomValue(''); setDeleteSelectedValue(''); }} title="Manage Shipment Types">
+        <div className="space-y-6">
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2"><Plus className="w-4 h-4 text-blue-600" />Add New Type</h4>
+            <div className="flex gap-2">
+              <input type="text" value={newCustomValue} onChange={(e) => setNewCustomValue(e.target.value)} placeholder="Enter new type (e.g., 1x40GP FLT)" className="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onKeyPress={(e) => e.key === 'Enter' && handleAddCustomValue('type')} />
+              <button onClick={() => handleAddCustomValue('type')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add</button>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-600" />Delete Type</h4>
+            <p className="text-sm text-gray-600 mb-3">Click on a type to select it, then click Delete:</p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {allTypes.map(type => (
+                <button
+                  key={type}
+                  onClick={() => setDeleteSelectedValue(type)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    deleteSelectedValue === type
+                      ? 'bg-red-600 text-white ring-2 ring-offset-2 ring-red-400'
+                      : customTypes.includes(type)
+                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+            {deleteSelectedValue && (
+              <button onClick={() => handleDeleteCustomValue('type')} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete Selected</button>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <button onClick={() => { setShowManageTypesModal(false); setNewCustomValue(''); setDeleteSelectedValue(''); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Manage Terms Modal */}
+      <Modal isOpen={showManageTermsModal} onClose={() => { setShowManageTermsModal(false); setNewCustomValue(''); setDeleteSelectedValue(''); }} title="Manage Shipment Terms">
+        <div className="space-y-6">
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2"><Plus className="w-4 h-4 text-blue-600" />Add New Term</h4>
+            <div className="flex gap-2">
+              <input type="text" value={newCustomValue} onChange={(e) => setNewCustomValue(e.target.value)} placeholder="Enter new term (e.g., EXW)" className="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onKeyPress={(e) => e.key === 'Enter' && handleAddCustomValue('term')} />
+              <button onClick={() => handleAddCustomValue('term')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add</button>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-600" />Delete Term</h4>
+            <p className="text-sm text-gray-600 mb-3">Click on a term to select it, then click Delete:</p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {allTerms.map(term => (
+                <button
+                  key={term}
+                  onClick={() => setDeleteSelectedValue(term)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    deleteSelectedValue === term
+                      ? 'bg-red-600 text-white ring-2 ring-offset-2 ring-red-400'
+                      : customTerms.includes(term)
+                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+            {deleteSelectedValue && (
+              <button onClick={() => handleDeleteCustomValue('term')} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete Selected</button>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <button onClick={() => { setShowManageTermsModal(false); setNewCustomValue(''); setDeleteSelectedValue(''); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Manage Years Modal */}
+      <Modal isOpen={showManageYearsModal} onClose={() => { setShowManageYearsModal(false); setNewCustomValue(''); setDeleteSelectedValue(''); }} title="Manage Shipment Years">
+        <div className="space-y-6">
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2"><Plus className="w-4 h-4 text-blue-600" />Add New Year</h4>
+            <div className="flex gap-2">
+              <input type="number" value={newCustomValue} onChange={(e) => setNewCustomValue(e.target.value)} placeholder="Enter year (e.g., 2027)" min="2000" max="2100" className="flex-1 px-3 py-2 border border-gray-300 rounded-lg" onKeyPress={(e) => e.key === 'Enter' && handleAddCustomValue('year')} />
+              <button onClick={() => handleAddCustomValue('year')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add</button>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-600" />Delete Year</h4>
+            <p className="text-sm text-gray-600 mb-3">Click on a year to select it, then click Delete:</p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {allYears.map(year => (
+                <button
+                  key={year}
+                  onClick={() => setDeleteSelectedValue(String(year))}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    String(deleteSelectedValue) === String(year)
+                      ? 'bg-red-600 text-white ring-2 ring-offset-2 ring-red-400'
+                      : customYears.includes(year)
+                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+            {deleteSelectedValue && (
+              <button onClick={() => handleDeleteCustomValue('year')} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete Selected</button>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <button onClick={() => { setShowManageYearsModal(false); setNewCustomValue(''); setDeleteSelectedValue(''); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
+          </div>
+        </div>
+      </Modal>
+
       <ConfirmDialog isOpen={confirmDialog.isOpen} onClose={() => setConfirmDialog({ isOpen: false })} onConfirm={confirmDialog.onConfirm} title={confirmDialog.title} message={confirmDialog.message} confirmText={confirmDialog.confirmText} confirmColor={confirmDialog.confirmColor} />
       <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportData} />
     </div>
   );
+}
+
+const AUTH_USERS_KEY = 'shipmentTrackerAuthUsers';
+const AUTH_SESSION_KEY = 'shipmentTrackerAuthSession';
+
+const ensureAuthUsers = () => {
+  try {
+    const raw = localStorage.getItem(AUTH_USERS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) {
+      // Migrate away the old seeded default account.
+      if (
+        parsed.length === 1
+        && parsed[0]?.username === 'admin'
+        && parsed[0]?.password === 'admin'
+        && parsed[0]?.role === 'admin'
+      ) {
+        localStorage.setItem(AUTH_USERS_KEY, JSON.stringify([]));
+        return [];
+      }
+      return parsed;
+    }
+  } catch {
+    // Ignore parse errors and reset users.
+  }
+
+  localStorage.setItem(AUTH_USERS_KEY, JSON.stringify([]));
+  return [];
+};
+
+export default function ShipmentTracker() {
+  const [users, setUsers] = useState(() => ensureAuthUsers());
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [sessionUser, setSessionUser] = useState(() => {
+    try {
+      return localStorage.getItem(AUTH_SESSION_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
+
+  useEffect(() => {
+    setUsers(ensureAuthUsers());
+  }, []);
+
+  const handleAuthSubmit = (e) => {
+    e.preventDefault();
+
+    const normalizedUsername = username.trim();
+    if (!normalizedUsername || !password) {
+      setError('Username and password are required.');
+      return;
+    }
+
+    if (users.length === 0) {
+      const createdUser = { username: normalizedUsername, password, role: 'admin' };
+      const nextUsers = [createdUser];
+      localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(nextUsers));
+      localStorage.setItem(AUTH_SESSION_KEY, createdUser.username);
+      setUsers(nextUsers);
+      setSessionUser(createdUser.username);
+      setPassword('');
+      setError('');
+      return;
+    }
+
+    const user = users.find(u => u.username === normalizedUsername && u.password === password);
+    if (!user) {
+      setError('Invalid username or password.');
+      return;
+    }
+
+    localStorage.setItem(AUTH_SESSION_KEY, user.username);
+    setSessionUser(user.username);
+    setPassword('');
+    setError('');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    setSessionUser('');
+    setPassword('');
+    setError('');
+  };
+
+  if (!sessionUser) {
+    const isSetupMode = users.length === 0;
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl p-6 space-y-5">
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-bold text-slate-900">{isSetupMode ? 'Create Admin Account' : 'Shipment Tracker Login'}</h1>
+            <p className="text-sm text-slate-600">{isSetupMode ? 'Create your first admin user to get started.' : 'Sign in with your account credentials.'}</p>
+          </div>
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400"
+                placeholder="Enter username"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400"
+                placeholder="Enter password"
+              />
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
+              <Lock className="w-4 h-4" />
+              {isSetupMode ? 'Create Account' : 'Login'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return <ShipmentTrackerApp onLogout={handleLogout} />;
 }
