@@ -1,12 +1,24 @@
 services:
   shipment-tracker:
-    build: .
-    container_name: shipment-tracker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: shipment-tracker:latest
     environment:
-      - NODE_ENV=production
-      - PORT=4000
-    volumes:
-      - /path/to/shipment-tracker/data:/app/data
+      NODE_ENV: production
+      PORT: 4000
     ports:
-      - 4000:4000
+      - "4000:4000"
+    volumes:
+      - shipment-tracker-data:/app/data
     restart: unless-stopped
+    healthcheck:
+      test:
+        ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:4000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  shipment-tracker-data:
