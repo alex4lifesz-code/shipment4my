@@ -243,7 +243,7 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
   );
 };
 
-function ShipmentTrackerApp({ onLogout }) {
+function ShipmentTrackerApp({ onLogout, authToken, onSessionExpired }) {
   const [shipments, setShipments] = useState(initialShipmentData);
   const [consignees, setConsignees] = useState(initialConsigneeData);
   const [agentsData, setAgentsData] = useState(initialAgentsData);
@@ -386,10 +386,24 @@ function ShipmentTrackerApp({ onLogout }) {
     shipmentNotes
   });
 
+  const apiFetch = async (url, options = {}) => {
+    const mergedHeaders = {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${authToken}`
+    };
+
+    const response = await fetch(url, { ...options, headers: mergedHeaders });
+    if (response.status === 401) {
+      onSessionExpired();
+      throw new Error('Session expired. Please log in again.');
+    }
+    return response;
+  };
+
   useEffect(() => {
     const loadFromApi = async () => {
       try {
-        const res = await fetch('/api/data');
+        const res = await apiFetch('/api/data');
         if (!res.ok) throw new Error('Failed to load data from API');
         const data = await res.json();
         setShipments(Array.isArray(data.shipments) ? data.shipments : initialShipmentData);
@@ -408,14 +422,14 @@ function ShipmentTrackerApp({ onLogout }) {
     };
 
     loadFromApi();
-  }, []);
+  }, [authToken]);
 
   useEffect(() => {
     if (!isHydrated) return;
 
     const timeoutId = setTimeout(async () => {
       try {
-        await fetch('/api/data', {
+        await apiFetch('/api/data', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(buildPayload())
@@ -426,7 +440,7 @@ function ShipmentTrackerApp({ onLogout }) {
     }, 450);
 
     return () => clearTimeout(timeoutId);
-  }, [shipments, consignees, agentsData, documents, notifications, settings, activityLogs, shipmentNotes, isHydrated]);
+  }, [shipments, consignees, agentsData, documents, notifications, settings, activityLogs, shipmentNotes, isHydrated, authToken]);
 
   useEffect(() => {
     if (!syncMessage) return undefined;
@@ -456,7 +470,7 @@ function ShipmentTrackerApp({ onLogout }) {
   }, [showShipmentFilterPanel, showShipmentColumnsPanel]);
 
   const handleExportData = async () => {
-    const response = await fetch('/api/export');
+    const response = await apiFetch('/api/export');
     if (!response.ok) {
       setSyncMessage('Export failed.');
       return;
@@ -478,7 +492,7 @@ function ShipmentTrackerApp({ onLogout }) {
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
-      const response = await fetch('/api/import', {
+      const response = await apiFetch('/api/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsed)
@@ -507,7 +521,7 @@ function ShipmentTrackerApp({ onLogout }) {
     const confirmed = window.confirm('Delete all data from the database? This cannot be undone.');
     if (!confirmed) return;
 
-    const response = await fetch('/api/data', { method: 'DELETE' });
+    const response = await apiFetch('/api/data', { method: 'DELETE' });
     if (!response.ok) {
       setSyncMessage('Delete all failed.');
       return;
@@ -524,7 +538,7 @@ function ShipmentTrackerApp({ onLogout }) {
   };
 
   const handleResetSeedData = async () => {
-    const response = await fetch('/api/reset', { method: 'POST' });
+    const response = await apiFetch('/api/reset', { method: 'POST' });
     if (!response.ok) {
       setSyncMessage('Reset failed.');
       return;
@@ -2801,52 +2815,50 @@ function ShipmentTrackerApp({ onLogout }) {
   );
 }
 
-const AUTH_USERS_KEY = 'shipmentTrackerAuthUsers';
-const AUTH_SESSION_KEY = 'shipmentTrackerAuthSession';
-
-const ensureAuthUsers = () => {
-  try {
-    const raw = localStorage.getItem(AUTH_USERS_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (Array.isArray(parsed)) {
-      // Migrate away the old seeded default account.
-      if (
-        parsed.length === 1
-        && parsed[0]?.username === 'admin'
-        && parsed[0]?.password === 'admin'
-        && parsed[0]?.role === 'admin'
-      ) {
-        localStorage.setItem(AUTH_USERS_KEY, JSON.stringify([]));
-        return [];
-      }
-      return parsed;
-    }
-  } catch {
-    // Ignore parse errors and reset users.
-  }
-
-  localStorage.setItem(AUTH_USERS_KEY, JSON.stringify([]));
-  return [];
-};
+const AUTH_TOKEN_KEY = 'shipmentTrackerAuthToken';
 
 export default function ShipmentTracker() {
-  const [users, setUsers] = useState(() => ensureAuthUsers());
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [sessionUser, setSessionUser] = useState(() => {
+  const [authMode, setAuthMode] = useState('login');
+  const [hasUsers, setHasUsers] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [authToken, setAuthToken] = useState(() => {
     try {
-      return localStorage.getItem(AUTH_SESSION_KEY) || '';
+      return localStorage.getItem(AUTH_TOKEN_KEY) || '';
     } catch {
       return '';
     }
   });
+  const [error, setError] = useState('');
+  const [sessionUser, setSessionUser] = useState(null);
 
   useEffect(() => {
-    setUsers(ensureAuthUsers());
-  }, []);
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/status', {
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+        });
+        const data = await response.json();
+        setHasUsers(Boolean(data?.hasUsers));
+        setSessionUser(data?.user || null);
+      } catch {
+        setError('Unable to connect to authentication service.');
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
 
-  const handleAuthSubmit = (e) => {
+    checkAuthStatus();
+  }, [authToken]);
+
+  useEffect(() => {
+    if (hasUsers && authMode !== 'login') {
+      setAuthMode('login');
+    }
+  }, [hasUsers, authMode]);
+
+  const handleAuthSubmit = async (e) => {
     e.preventDefault();
 
     const normalizedUsername = username.trim();
@@ -2855,39 +2867,73 @@ export default function ShipmentTracker() {
       return;
     }
 
-    if (users.length === 0) {
-      const createdUser = { username: normalizedUsername, password, role: 'admin' };
-      const nextUsers = [createdUser];
-      localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(nextUsers));
-      localStorage.setItem(AUTH_SESSION_KEY, createdUser.username);
-      setUsers(nextUsers);
-      setSessionUser(createdUser.username);
+    if (!hasUsers && authMode === 'login') {
+      setError('No users found yet. Use First-time setup to create the admin account once.');
+      return;
+    }
+
+    try {
+      const endpoint = authMode === 'setup' ? '/api/auth/register' : '/api/auth/login';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: normalizedUsername, password })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        setError(payload?.error || 'Authentication failed.');
+        return;
+      }
+
+      localStorage.setItem(AUTH_TOKEN_KEY, payload.token);
+      setAuthToken(payload.token);
+      setSessionUser(payload.user || null);
+      setHasUsers(true);
       setPassword('');
       setError('');
-      return;
+    } catch {
+      setError('Authentication service is unavailable.');
+    }
+  };
+
+  const handleSessionExpired = () => {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    setAuthToken('');
+    setSessionUser(null);
+    setPassword('');
+    setError('Your session expired. Please log in again.');
+  };
+
+  const handleLogout = async () => {
+    if (authToken) {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${authToken}` }
+        });
+      } catch {
+        // Best effort logout.
+      }
     }
 
-    const user = users.find(u => u.username === normalizedUsername && u.password === password);
-    if (!user) {
-      setError('Invalid username or password.');
-      return;
-    }
-
-    localStorage.setItem(AUTH_SESSION_KEY, user.username);
-    setSessionUser(user.username);
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    setAuthToken('');
+    setSessionUser(null);
     setPassword('');
     setError('');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem(AUTH_SESSION_KEY);
-    setSessionUser('');
-    setPassword('');
-    setError('');
-  };
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+        <div className="text-slate-600">Loading authentication...</div>
+      </div>
+    );
+  }
 
   if (!sessionUser) {
-    const isSetupMode = users.length === 0;
+    const isSetupMode = authMode === 'setup' && !hasUsers;
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl p-6 space-y-5">
@@ -2895,6 +2941,27 @@ export default function ShipmentTracker() {
             <h1 className="text-2xl font-bold text-slate-900">{isSetupMode ? 'Create Admin Account' : 'Shipment Tracker Login'}</h1>
             <p className="text-sm text-slate-600">{isSetupMode ? 'Create your first admin user to get started.' : 'Sign in with your account credentials.'}</p>
           </div>
+          {!hasUsers && (
+            <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs text-slate-600">No users are registered yet. Login remains the default screen. Use First-time setup only once to create the initial admin account.</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('login'); setError(''); }}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${authMode === 'login' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
+                >
+                  Existing User Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('setup'); setError(''); }}
+                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${authMode === 'setup' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
+                >
+                  First-time Setup
+                </button>
+              </div>
+            </div>
+          )}
           <form onSubmit={handleAuthSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
@@ -2919,7 +2986,7 @@ export default function ShipmentTracker() {
             {error && <p className="text-sm text-red-600">{error}</p>}
             <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
               <Lock className="w-4 h-4" />
-              {isSetupMode ? 'Create Account' : 'Login'}
+              {isSetupMode ? 'Create Admin Account' : 'Login'}
             </button>
           </form>
         </div>
@@ -2927,5 +2994,5 @@ export default function ShipmentTracker() {
     );
   }
 
-  return <ShipmentTrackerApp onLogout={handleLogout} />;
+  return <ShipmentTrackerApp onLogout={handleLogout} authToken={authToken} onSessionExpired={handleSessionExpired} />;
 }

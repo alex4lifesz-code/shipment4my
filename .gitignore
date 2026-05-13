@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Runtime SQLite files for auth and per-user data
+data/auth.db
+data/users/*.db

@@ -49,9 +49,13 @@ The image is published automatically by GitHub Actions on pushes to `main`.
 
 ## Data Location
 
-SQLite file:
+SQLite auth database:
 
-- `data/shipment-tracker.db`
+- `data/auth.db`
+
+Per-user SQLite data files:
+
+- `data/users/user-<id>.db`
 
 Seed source:
 
@@ -59,13 +63,19 @@ Seed source:
 
 ## API Endpoints
 
+- `GET /api/auth/status` get auth setup status and current user session (if token is valid)
+- `POST /api/auth/register` create a user account (first account becomes admin)
+- `POST /api/auth/login` login and receive bearer token
+- `POST /api/auth/logout` logout current session
 - `GET /api/health` health check
-- `GET /api/data` get full dataset
-- `PUT /api/data` save full dataset
-- `GET /api/export` export all data as JSON
-- `POST /api/import` import full dataset JSON
-- `DELETE /api/data` delete all data
-- `POST /api/reset` reset database to seed data
+- `GET /api/data` get full dataset for the authenticated user
+- `PUT /api/data` save full dataset for the authenticated user
+- `GET /api/export` export authenticated user's data as JSON
+- `POST /api/import` import full dataset JSON for the authenticated user
+- `DELETE /api/data` delete authenticated user's data
+- `POST /api/reset` reset authenticated user's database to seed data
+
+All `/api/data`, `/api/export`, `/api/import`, and `/api/reset` routes now require an `Authorization: Bearer <token>` header.
 
 ## Implemented Data Operations
 
