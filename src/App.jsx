@@ -265,6 +265,8 @@ function ShipmentTrackerApp({ onLogout }) {
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [consigneeSearch, setConsigneeSearch] = useState('');
   const [agentSearch, setAgentSearch] = useState('');
+  const [documentSearch, setDocumentSearch] = useState('');
+  const [copiedValue, setCopiedValue] = useState(null);
   const [logSearchTerm, setLogSearchTerm] = useState('');
   const [logTypeFilter, setLogTypeFilter] = useState('all');
   const [logActionFilter, setLogActionFilter] = useState('all');
@@ -311,6 +313,7 @@ function ShipmentTrackerApp({ onLogout }) {
   const [currentValueType, setCurrentValueType] = useState(null);
   
   const fileInputRef = useRef(null);
+  const documentFileInputRef = useRef(null);
 
   const viewMode = settings.shipmentViewMode || 'card';
   const consigneeViewMode = settings.consigneeViewMode || 'card';
@@ -540,18 +543,20 @@ function ShipmentTrackerApp({ onLogout }) {
   };
 
   const visibleNotifications = useMemo(
-    () => notifications.filter(notification => !toSearchText(notification?.title).startsWith('shipment note')),
+    () => notifications
+      .filter(notification => !toSearchText(notification?.title).startsWith('shipment note'))
+      .sort((a, b) => b.id - a.id),
     [notifications]
   );
 
   const menuItems = [
+    { id: 'notifications', icon: Bell, label: 'Notifications', badge: visibleNotifications.filter(n => !n.read).length },
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'shipments', icon: Ship, label: 'Shipments' },
     { id: 'agents', icon: Briefcase, label: 'Agents' },
     { id: 'consignees', icon: Users, label: 'Consignees' },
     { id: 'reports', icon: BarChart3, label: 'Reports' },
     { id: 'documents', icon: FileBox, label: 'Documents' },
-    { id: 'notifications', icon: Bell, label: 'Notifications', badge: visibleNotifications.filter(n => !n.read).length },
     { id: 'logs', icon: FileText, label: 'Logs' },
   ];
 
@@ -1006,6 +1011,42 @@ function ShipmentTrackerApp({ onLogout }) {
   const allTerms = [...defaultTerms, ...customTerms];
   const allYears = [...defaultYears, ...customYears].sort((a, b) => a - b);
 
+  const filteredDocuments = useMemo(() => {
+    const query = documentSearch.trim().toLowerCase();
+    if (!query) return documents;
+    return documents.filter((doc) =>
+      [doc.name, doc.type, doc.shipmentHbl, doc.status]
+        .filter(Boolean)
+        .some((value) => value.toString().toLowerCase().includes(query))
+    );
+  }, [documents, documentSearch]);
+
+  const formatFileSize = (bytes = 0) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex += 1;
+    }
+    return `${size >= 10 ? size.toFixed(0) : size.toFixed(1)} ${units[unitIndex]}`;
+  };
+
+  const readFileAsDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+
+  const getDocumentType = (file) => {
+    const extension = file.name.includes('.') ? file.name.split('.').pop().toUpperCase() : '';
+    if (extension) return extension;
+    return (file.type || 'FILE').toUpperCase();
+  };
+
 
   const addActivityLog = (type, entityType, entityName, action, changes, snapshot = null) => {
     const timestamp = new Date().toISOString();
@@ -1033,6 +1074,183 @@ function ShipmentTrackerApp({ onLogout }) {
       ...(shipmentId ? { shipmentId } : {})
     };
     setNotifications(prev => [item, ...prev]);
+  };
+
+  useEffect(() => {
+    const now = new Date();
+    const documentMap = documents.reduce((acc, doc) => {
+      const key = (doc.shipmentHbl || '').trim();
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const generatedAlerts = [];
+
+    shipments.forEach((shipment) => {
+      const shipmentId = shipment.id;
+      const hbl = shipment.hbl || shipment.mbl || 'Unknown';
+      const done = isCompleted(shipment.status || '');
+      const docCount = documentMap[shipment.hbl] || 0;
+
+      if (!done && docCount === 0) {
+        generatedAlerts.push({
+          key: `missing-docs-${shipmentId}`,
+          type: 'alert',
+          title: 'Missing Documents',
+          message: `${hbl} has no filed documents yet. Upload required files to avoid delays.`,
+          shipmentId
+        });
+      }
+
+      if (!done && shipment.eta) {
+        const eta = new Date(`${shipment.eta}T00:00:00Z`);
+        if (!Number.isNaN(eta.getTime())) {
+          const utcToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+          const utcEta = Date.UTC(eta.getUTCFullYear(), eta.getUTCMonth(), eta.getUTCDate());
+          const diffDays = Math.ceil((utcEta - utcToday) / (1000 * 60 * 60 * 24));
+
+          if (diffDays < 0) {
+            generatedAlerts.push({
+              key: `eta-overdue-${shipmentId}`,
+              type: 'delay',
+              title: 'ETA Overdue',
+              message: `${hbl} ETA passed ${Math.abs(diffDays)} day(s) ago. Follow up with carrier and update status.`,
+              shipmentId
+            });
+          } else if (diffDays <= 2) {
+            generatedAlerts.push({
+              key: `eta-soon-${shipmentId}`,
+              type: 'alert',
+              title: 'ETA Approaching',
+              message: `${hbl} ETA is in ${diffDays} day(s). Prepare clearance and delivery documents.`,
+              shipmentId
+            });
+          }
+        }
+      }
+    });
+
+    setNotifications((prev) => {
+      const userNotifications = prev.filter((item) => item.source !== 'system');
+      const previousSystemByKey = new Map(prev.filter((item) => item.source === 'system' && item.key).map((item) => [item.key, item]));
+
+      const systemNotifications = generatedAlerts.map((item, index) => {
+        const existing = previousSystemByKey.get(item.key);
+        return {
+          id: existing?.id || Date.now() + index,
+          source: 'system',
+          key: item.key,
+          type: item.type,
+          title: item.title,
+          message: item.message,
+          time: new Date().toISOString().slice(0, 10),
+          read: existing?.read || false,
+          ...(item.shipmentId ? { shipmentId: item.shipmentId } : {})
+        };
+      });
+
+      return [...systemNotifications, ...userNotifications];
+    });
+  }, [shipments, documents]);
+
+  const handleDocumentUpload = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    try {
+      const uploadedDocs = await Promise.all(
+        files.map(async (file) => {
+          const dataUrl = await readFileAsDataUrl(file);
+          const linkedShipment = shipments.find((shipment) => {
+            if (!shipment?.hbl) return false;
+            const fileName = file.name.toLowerCase();
+            return (
+              fileName.includes(shipment.hbl.toLowerCase()) ||
+              (shipment.mbl && fileName.includes(shipment.mbl.toLowerCase()))
+            );
+          });
+
+          return {
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            name: file.name,
+            type: getDocumentType(file),
+            shipmentHbl: linkedShipment?.hbl || '',
+            shipmentId: linkedShipment?.id || null,
+            uploadDate: new Date().toISOString().slice(0, 10),
+            size: formatFileSize(file.size),
+            sizeBytes: file.size,
+            status: 'uploaded',
+            mimeType: file.type || 'application/octet-stream',
+            dataUrl,
+          };
+        })
+      );
+
+      setDocuments((prev) => [...uploadedDocs, ...prev]);
+      uploadedDocs.forEach((doc) => {
+        addActivityLog('document', 'Document', doc.name, 'CREATED', 'Document uploaded');
+        addNotificationItem('info', 'Document Uploaded', `${doc.name}${doc.shipmentHbl ? ` linked to ${doc.shipmentHbl}` : ''}`, doc.shipmentId || null);
+      });
+    } catch (error) {
+      console.error('Document upload failed', error);
+      setSyncMessage('Failed to upload one or more documents.');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleDownloadDocument = (doc) => {
+    if (!doc?.dataUrl) {
+      setSyncMessage('This document cannot be downloaded.');
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = doc.dataUrl;
+    link.download = doc.name || `document-${doc.id}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrintDocument = (doc) => {
+    if (!doc?.dataUrl) {
+      setSyncMessage('This document cannot be printed.');
+      return;
+    }
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1000,height=800');
+    if (!printWindow) return;
+
+    const isImage = (doc.mimeType || '').startsWith('image/');
+    const content = isImage
+      ? `<img src="${doc.dataUrl}" style="max-width:100%;height:auto;" />`
+      : `<iframe src="${doc.dataUrl}" style="width:100%;height:100vh;border:none;"></iframe>`;
+
+    printWindow.document.write(`
+      <html>
+        <head><title>${doc.name}</title></head>
+        <body style="margin:0;padding:16px;">${content}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 350);
+  };
+
+  const handleDeleteDocument = (doc) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Document',
+      message: `Delete document "${doc.name}"?`,
+      confirmText: 'Delete',
+      confirmColor: 'bg-red-600 hover:bg-red-700',
+      onConfirm: () => {
+        setDocuments((prev) => prev.filter((item) => item.id !== doc.id));
+        addActivityLog('document', 'Document', doc.name, 'DELETED', 'Document deleted', { ...doc });
+        addNotificationItem('alert', 'Document Removed', `${doc.name} was removed${doc.shipmentHbl ? ` from ${doc.shipmentHbl}` : ''}.`);
+        setConfirmDialog({ isOpen: false });
+      }
+    });
   };
 
   const handleActivityLogClick = (log) => {
@@ -1089,6 +1307,8 @@ function ShipmentTrackerApp({ onLogout }) {
         setShowConsigneeModal(true);
         highlightConsignee(consignee.name);
       }
+    } else if (log.type === 'document') {
+      setActiveMenu('documents');
     }
   };
 
@@ -1179,11 +1399,14 @@ function ShipmentTrackerApp({ onLogout }) {
           });
           setShipments(prev => prev.map(s => s.id === editingShipment.id ? { ...shipmentForm, id: editingShipment.id } : s));
           addActivityLog('shipment', 'Shipment', shipmentForm.hbl, 'UPDATED', changes.join(', '));
+          addNotificationItem('info', 'Shipment Updated', `${shipmentForm.hbl} details were updated.`, editingShipment.id);
           highlightShipment(editingShipment.id);
         } else {
-          setShipments(prev => [...prev, { ...shipmentForm }]);
+          const newShipment = { ...shipmentForm, id: Date.now() };
+          setShipments(prev => [...prev, newShipment]);
           addActivityLog('shipment', 'Shipment', shipmentForm.hbl, 'CREATED', `New shipment added`);
-          highlightShipment(Date.now());
+          addNotificationItem('info', 'New Shipment Added', `${shipmentForm.hbl} is now being tracked.`, newShipment.id);
+          highlightShipment(newShipment.id);
         }
         setShowShipmentModal(false);
         setConfirmDialog({ isOpen: false });
@@ -1198,6 +1421,7 @@ function ShipmentTrackerApp({ onLogout }) {
       onConfirm: () => { 
         setShipments(prev => prev.map(s => s.id === editingShipment.id ? { ...s, status: 'DONE!' } : s)); 
         addActivityLog('shipment', 'Shipment', editingShipment.hbl, 'MARKED COMPLETE', `Status: ${editingShipment.status} → DONE!`);
+        addNotificationItem('completed', 'Shipment Completed', `${editingShipment.hbl} marked as DONE.`, editingShipment.id);
         setShowShipmentModal(false); 
         setConfirmDialog({ isOpen: false }); 
       }
@@ -1210,6 +1434,7 @@ function ShipmentTrackerApp({ onLogout }) {
       confirmText: 'Delete', confirmColor: 'bg-red-600 hover:bg-red-700',
       onConfirm: () => { 
         addActivityLog('shipment', 'Shipment', editingShipment.hbl, 'DELETED', `Shipment deleted`, { ...editingShipment });
+        addNotificationItem('alert', 'Shipment Deleted', `${editingShipment.hbl} was removed from tracking.`);
         setShipments(prev => prev.filter(s => s.id !== editingShipment.id)); 
         setShowShipmentModal(false); 
         setConfirmDialog({ isOpen: false }); 
@@ -1357,10 +1582,24 @@ function ShipmentTrackerApp({ onLogout }) {
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
+      setCopiedValue(value);
+      setTimeout(() => setCopiedValue(null), 1500);
     } catch (error) {
       console.error('Failed to copy text', error);
     }
   };
+
+  const CopyButton = ({ value, className = '' }) => (
+    <>
+      <button onClick={(e) => handleCopyText(value, e)} title={`Copy ${value}`}
+        className={`p-1 text-gray-400 hover:text-gray-600 rounded transition-colors ${className}`.trim()}>
+        <Copy className="w-3.5 h-3.5" />
+      </button>
+      {copiedValue === value && (
+        <span className="text-xs text-green-600 font-semibold bg-green-50 px-1.5 py-0.5 rounded">Copied!</span>
+      )}
+    </>
+  );
 
   const ShipmentCard = ({ shipment }) => {
     const colors = resolveAgentColors(shipment.agent);
@@ -1373,15 +1612,11 @@ function ShipmentTrackerApp({ onLogout }) {
             <div>
               <div className="flex items-center gap-1.5">
                 <div className="font-bold text-gray-900">{shipment.hbl}</div>
-                <button onClick={(e) => handleCopyText(shipment.hbl, e)} title={`Copy ${shipment.hbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors">
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
+                <CopyButton value={shipment.hbl} />
               </div>
               <div className="flex items-center gap-1.5 text-xs text-gray-500">
                 <span>{shipment.mbl}</span>
-                <button onClick={(e) => handleCopyText(shipment.mbl, e)} title={`Copy ${shipment.mbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors">
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
+                <CopyButton value={shipment.mbl} />
               </div>
               <div className="text-xs text-gray-500">{shipment.type}</div>
             </div>
@@ -1393,17 +1628,13 @@ function ShipmentTrackerApp({ onLogout }) {
         </div>
         <div className="inline-flex items-center gap-1.5 mb-3">
           <div className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</div>
-          <button onClick={(e) => handleCopyText(shipment.agent, e)} title={`Copy ${shipment.agent}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors">
-            <Copy className="w-3.5 h-3.5" />
-          </button>
+          <CopyButton value={shipment.agent} />
         </div>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2 text-gray-600"><Building className="w-3 h-3" /><span className="truncate">{shipment.shipper}</span></div>
           <div className="flex items-center gap-1.5">
             <button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="flex items-center gap-2 text-blue-600 hover:underline min-w-0"><User className="w-3 h-3 flex-shrink-0" /><span className="truncate">{shipment.cnee}</span></button>
-            <button onClick={(e) => handleCopyText(shipment.cnee, e)} title={`Copy ${shipment.cnee}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors flex-shrink-0">
-              <Copy className="w-3.5 h-3.5" />
-            </button>
+            <CopyButton value={shipment.cnee} className="flex-shrink-0" />
           </div>
         </div>
         {shipmentNotes[shipment.id]?.text && (
@@ -1433,12 +1664,12 @@ function ShipmentTrackerApp({ onLogout }) {
           {isShipmentColumnVisible('etd') && <td className="px-4 py-3 text-sm text-gray-600">{formatDate(shipment.etd, settings.dateFormat)}</td>}
           {isShipmentColumnVisible('eta') && <td className="px-4 py-3 text-sm text-gray-600">{formatDate(shipment.eta, settings.dateFormat)}</td>}
           {isShipmentColumnVisible('days') && <td className="px-4 py-3 text-sm font-semibold text-orange-600">{getTimeRemaining(shipment.eta, shipment.status)}</td>}
-          {isShipmentColumnVisible('hblmbl') && <td className="px-4 py-3"><div className="flex items-center gap-2"><div className={`p-1.5 ${colors.light} rounded`}>{getShipmentIcon(shipment.type)}</div><div><div className="flex items-center gap-1.5"><div className="font-medium text-gray-900">{shipment.hbl}</div><button onClick={(e) => handleCopyText(shipment.hbl, e)} title={`Copy ${shipment.hbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div><div className="flex items-center gap-1.5 text-xs text-gray-500"><span>{shipment.mbl}</span><button onClick={(e) => handleCopyText(shipment.mbl, e)} title={`Copy ${shipment.mbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></div></div></td>}
+          {isShipmentColumnVisible('hblmbl') && <td className="px-4 py-3"><div className="flex items-center gap-2"><div className={`p-1.5 ${colors.light} rounded`}>{getShipmentIcon(shipment.type)}</div><div><div className="flex items-center gap-1.5"><div className="font-medium text-gray-900">{shipment.hbl}</div><CopyButton value={shipment.hbl} /></div><div className="flex items-center gap-1.5 text-xs text-gray-500"><span>{shipment.mbl}</span><CopyButton value={shipment.mbl} /></div></div></div></td>}
           {isShipmentColumnVisible('shipper') && <td className="px-4 py-3 text-sm text-gray-900">{shipment.shipper}</td>}
-          {isShipmentColumnVisible('consignee') && <td className="px-4 py-3"><div className="flex items-center gap-1.5"><button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="text-sm text-blue-600 hover:underline">{shipment.cnee}</button><button onClick={(e) => handleCopyText(shipment.cnee, e)} title={`Copy ${shipment.cnee}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></td>}
+          {isShipmentColumnVisible('consignee') && <td className="px-4 py-3"><div className="flex items-center gap-1.5"><button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="text-sm text-blue-600 hover:underline">{shipment.cnee}</button><CopyButton value={shipment.cnee} /></div></td>}
           {isShipmentColumnVisible('pol') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.pol}</td>}
           {isShipmentColumnVisible('pod') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.pod}</td>}
-          {isShipmentColumnVisible('agent') && <td className="px-4 py-3"><div className="inline-flex items-center gap-1.5"><span className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</span><button onClick={(e) => handleCopyText(shipment.agent, e)} title={`Copy ${shipment.agent}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></td>}
+          {isShipmentColumnVisible('agent') && <td className="px-4 py-3"><div className="inline-flex items-center gap-1.5"><span className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</span><CopyButton value={shipment.agent} /></div></td>}
           {isShipmentColumnVisible('type') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.type}</td>}
         </tr>
       );
@@ -1447,11 +1678,11 @@ function ShipmentTrackerApp({ onLogout }) {
     return (
       <tr onClick={(e) => handleShipmentRowClick(shipment, e)} className={`hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors duration-700 ${isHighlighted ? 'bg-yellow-100' : ''}`}>
         {isShipmentColumnVisible('_number') && <td className="px-3 py-3 text-xs font-semibold text-gray-500 text-center">{rowNumber}</td>}
-        {isShipmentColumnVisible('hblmbl') && <td className="px-4 py-3"><div className="flex items-center gap-2"><div className={`p-1.5 ${colors.light} rounded`}>{getShipmentIcon(shipment.type)}</div><div><div className="flex items-center gap-1.5"><div className="font-medium text-gray-900">{shipment.hbl}</div><button onClick={(e) => handleCopyText(shipment.hbl, e)} title={`Copy ${shipment.hbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div><div className="flex items-center gap-1.5 text-xs text-gray-500"><span>{shipment.mbl}</span><button onClick={(e) => handleCopyText(shipment.mbl, e)} title={`Copy ${shipment.mbl}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></div></div></td>}
-        {isShipmentColumnVisible('agent') && <td className="px-4 py-3"><div className="inline-flex items-center gap-1.5"><span className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</span><button onClick={(e) => handleCopyText(shipment.agent, e)} title={`Copy ${shipment.agent}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></td>}
+        {isShipmentColumnVisible('hblmbl') && <td className="px-4 py-3"><div className="flex items-center gap-2"><div className={`p-1.5 ${colors.light} rounded`}>{getShipmentIcon(shipment.type)}</div><div><div className="flex items-center gap-1.5"><div className="font-medium text-gray-900">{shipment.hbl}</div><CopyButton value={shipment.hbl} /></div><div className="flex items-center gap-1.5 text-xs text-gray-500"><span>{shipment.mbl}</span><CopyButton value={shipment.mbl} /></div></div></div></td>}
+        {isShipmentColumnVisible('agent') && <td className="px-4 py-3"><div className="inline-flex items-center gap-1.5"><span className={`inline-block ${colors.bg} text-white px-2 py-0.5 rounded text-xs font-medium`}>{shipment.agent}</span><CopyButton value={shipment.agent} /></div></td>}
         {isShipmentColumnVisible('type') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.type}</td>}
         {isShipmentColumnVisible('shipper') && <td className="px-4 py-3 text-sm text-gray-900">{shipment.shipper}</td>}
-        {isShipmentColumnVisible('consignee') && <td className="px-4 py-3"><div className="flex items-center gap-1.5"><button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="text-sm text-blue-600 hover:underline">{shipment.cnee}</button><button onClick={(e) => handleCopyText(shipment.cnee, e)} title={`Copy ${shipment.cnee}`} className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"><Copy className="w-3.5 h-3.5" /></button></div></td>}
+        {isShipmentColumnVisible('consignee') && <td className="px-4 py-3"><div className="flex items-center gap-1.5"><button onClick={(e) => handleConsigneeClick(shipment.cnee, e)} className="text-sm text-blue-600 hover:underline">{shipment.cnee}</button><CopyButton value={shipment.cnee} /></div></td>}
         {isShipmentColumnVisible('pol') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.pol}</td>}
         {isShipmentColumnVisible('pod') && <td className="px-4 py-3 text-sm text-gray-600">{shipment.pod}</td>}
         {isShipmentColumnVisible('etd') && <td className="px-4 py-3 text-sm text-gray-600">{formatDate(shipment.etd, settings.dateFormat)}</td>}
@@ -1933,7 +2164,83 @@ function ShipmentTrackerApp({ onLogout }) {
 
   const ReportsContent = () => (<div className="space-y-6"><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"><div className="flex items-center gap-3 mb-3"><div className="p-2 bg-blue-50 rounded-lg"><FileSpreadsheet className="w-6 h-6 text-blue-600" /></div><div><h3 className="font-semibold text-gray-900">Shipment Report</h3><p className="text-sm text-gray-500">Export all shipment data</p></div></div><button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Download className="w-4 h-4" />Generate</button></div><div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"><div className="flex items-center gap-3 mb-3"><div className="p-2 bg-green-50 rounded-lg"><TrendingUp className="w-6 h-6 text-green-600" /></div><div><h3 className="font-semibold text-gray-900">Performance Report</h3><p className="text-sm text-gray-500">Agent performance metrics</p></div></div><button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"><Download className="w-4 h-4" />Generate</button></div><div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"><div className="flex items-center gap-3 mb-3"><div className="p-2 bg-purple-50 rounded-lg"><Users className="w-6 h-6 text-purple-600" /></div><div><h3 className="font-semibold text-gray-900">Consignee Report</h3><p className="text-sm text-gray-500">Customer analytics</p></div></div><button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"><Download className="w-4 h-4" />Generate</button></div></div><div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"><h3 className="font-semibold text-gray-900 mb-4">Agent Performance</h3><ResponsiveContainer width="100%" height={300}><BarChart data={agentChartData} layout="vertical"><CartesianGrid strokeDasharray="3 3" /><XAxis type="number" /><YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} /><Tooltip /><Legend /><Bar dataKey="completed" fill="#10B981" name="Completed" /><Bar dataKey="active" fill="#F59E0B" name="Active" /></BarChart></ResponsiveContainer></div></div>);
 
-  const DocumentsContent = () => (<div className="space-y-6"><div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"><div className="flex items-center gap-4"><div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Search documents..." className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg" /></div><button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Upload className="w-4 h-4" />Upload</button></div></div><div className="bg-white rounded-xl border border-gray-200 overflow-hidden"><table className="w-full"><thead className="bg-gray-50 border-b border-gray-200"><tr><th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Document</th><th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th><th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Shipment</th><th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th><th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Size</th><th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th><th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th></tr></thead><tbody>{documents.map(doc => (<tr key={doc.id} className="border-b border-gray-100 hover:bg-gray-50"><td className="px-4 py-3"><div className="flex items-center gap-2"><FileText className="w-4 h-4 text-gray-400" /><span className="text-sm font-medium text-gray-900">{doc.name}</span></div></td><td className="px-4 py-3 text-sm text-gray-600">{doc.type}</td><td className="px-4 py-3 text-sm text-blue-600">{doc.shipmentHbl}</td><td className="px-4 py-3 text-sm text-gray-600">{formatDate(doc.uploadDate, settings.dateFormat)}</td><td className="px-4 py-3 text-sm text-gray-600">{doc.size}</td><td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${doc.status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{doc.status}</span></td><td className="px-4 py-3"><div className="flex items-center gap-2"><button className="p-1 hover:bg-gray-100 rounded"><Download className="w-4 h-4 text-gray-600" /></button><button className="p-1 hover:bg-gray-100 rounded"><Printer className="w-4 h-4 text-gray-600" /></button><button className="p-1 hover:bg-gray-100 rounded"><Trash2 className="w-4 h-4 text-red-600" /></button></div></td></tr>))}</tbody></table></div></div>);
+  const DocumentsContent = () => (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+        <div className="flex items-center gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={documentSearch}
+              onChange={(event) => setDocumentSearch(event.target.value)}
+              placeholder="Search documents..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+            />
+          </div>
+          <button onClick={() => documentFileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <Upload className="w-4 h-4" />Upload
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Document</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Shipment</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Size</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDocuments.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-4 py-8 text-center text-gray-500">No documents found</td>
+                </tr>
+              ) : (
+                filteredDocuments.map((doc) => (
+                  <tr key={doc.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-900">{doc.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{doc.type}</td>
+                    <td className="px-4 py-3 text-sm text-blue-600">{doc.shipmentHbl || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{formatDate(doc.uploadDate, settings.dateFormat)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{doc.size || formatFileSize(doc.sizeBytes || 0)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${doc.status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{doc.status || 'uploaded'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleDownloadDocument(doc)} className="p-1 hover:bg-gray-100 rounded" title="Download">
+                          <Download className="w-4 h-4 text-gray-600" />
+                        </button>
+                        <button onClick={() => handlePrintDocument(doc)} className="p-1 hover:bg-gray-100 rounded" title="Print">
+                          <Printer className="w-4 h-4 text-gray-600" />
+                        </button>
+                        <button onClick={() => handleDeleteDocument(doc)} className="p-1 hover:bg-gray-100 rounded" title="Delete">
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 
   const NotificationCard = ({ notification }) => (
     <div onClick={() => handleNotificationClick(notification)} className={`bg-white rounded-xl border p-4 cursor-pointer hover:shadow-md transition-all ${notification.read ? 'border-gray-200' : 'border-blue-300 bg-blue-50'} ${highlightedShipmentId === notification.shipmentId ? 'ring-2 ring-blue-400' : ''}`}>
@@ -2489,6 +2796,7 @@ function ShipmentTrackerApp({ onLogout }) {
 
       <ConfirmDialog isOpen={confirmDialog.isOpen} onClose={() => setConfirmDialog({ isOpen: false })} onConfirm={confirmDialog.onConfirm} title={confirmDialog.title} message={confirmDialog.message} confirmText={confirmDialog.confirmText} confirmColor={confirmDialog.confirmColor} />
       <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportData} />
+      <input ref={documentFileInputRef} type="file" multiple className="hidden" onChange={handleDocumentUpload} />
     </div>
   );
 }
