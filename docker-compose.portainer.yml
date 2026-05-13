@@ -1,7 +1,7 @@
 services:
   shipment-tracker:
-    image: shipment-tracker:latest
-    pull_policy: never
+    image: ghcr.io/alex4lifesz-code/shipment4my:latest
+    pull_policy: always
     environment:
       NODE_ENV: production
       PORT: 4000

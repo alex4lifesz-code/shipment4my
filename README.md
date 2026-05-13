@@ -38,12 +38,14 @@ Use [docker-compose.portainer.yml](docker-compose.portainer.yml) as the Portaine
 
 The stack:
 
-- runs the prebuilt `shipment-tracker:latest` image already available on the Docker host
+- pulls `ghcr.io/alex4lifesz-code/shipment4my:latest` from GitHub Container Registry
 - exposes the service on port 4000
 - stores SQLite data in a named volume so it survives redeploys
 - restarts automatically unless the container is stopped
 
-If you deploy Portainer on a different Docker host, build and load the image there first or publish it to a registry.
+Before deploying in Portainer, create a registry credential for `ghcr.io` (username is your GitHub username, password is a GitHub token with package read access) if the package is private.
+
+The image is published automatically by GitHub Actions on pushes to `main`.
 
 ## Data Location
 
