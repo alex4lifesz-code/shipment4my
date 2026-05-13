@@ -258,12 +258,16 @@ function ShipmentTrackerApp({ onLogout }) {
   const [showShipmentColumnsPanel, setShowShipmentColumnsPanel] = useState(false);
   const shipmentFilterRef = useRef(null);
   const shipmentColumnsRef = useRef(null);
+  const [showNoted, setShowNoted] = useState(true);
   const [showActive, setShowActive] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [consigneeSearch, setConsigneeSearch] = useState('');
   const [agentSearch, setAgentSearch] = useState('');
+  const [logSearchTerm, setLogSearchTerm] = useState('');
+  const [logTypeFilter, setLogTypeFilter] = useState('all');
+  const [logActionFilter, setLogActionFilter] = useState('all');
 
   const [showConsigneeModal, setShowConsigneeModal] = useState(false);
   const [selectedConsignee, setSelectedConsignee] = useState(null);
@@ -535,14 +539,20 @@ function ShipmentTrackerApp({ onLogout }) {
     setSyncMessage('Template data restored.');
   };
 
+  const visibleNotifications = useMemo(
+    () => notifications.filter(notification => !toSearchText(notification?.title).startsWith('shipment note')),
+    [notifications]
+  );
+
   const menuItems = [
-    { id: 'notifications', icon: Bell, label: 'Notifications', badge: notifications.filter(n => !n.read).length },
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'shipments', icon: Ship, label: 'Shipments' },
     { id: 'agents', icon: Briefcase, label: 'Agents' },
     { id: 'consignees', icon: Users, label: 'Consignees' },
     { id: 'reports', icon: BarChart3, label: 'Reports' },
     { id: 'documents', icon: FileBox, label: 'Documents' },
+    { id: 'notifications', icon: Bell, label: 'Notifications', badge: visibleNotifications.filter(n => !n.read).length },
+    { id: 'logs', icon: FileText, label: 'Logs' },
   ];
 
   const bottomMenuItems = [
@@ -618,6 +628,33 @@ function ShipmentTrackerApp({ onLogout }) {
     }
     return result;
   }, [agentsData, agentSearch]);
+
+  const filteredActivityLogs = useMemo(() => {
+    const term = toSearchText(logSearchTerm);
+    return activityLogs.filter(log => {
+      const matchesType = logTypeFilter === 'all' || log.type === logTypeFilter;
+      const matchesAction = logActionFilter === 'all' || log.action === logActionFilter;
+      const searchableFields = [
+        log.entityType,
+        log.entityName,
+        log.action,
+        log.changes,
+        formatDateTime(log.timestamp, settings.dateFormat)
+      ];
+      const matchesSearch = !term || searchableFields.some(field => toSearchText(field).includes(term));
+      return matchesType && matchesAction && matchesSearch;
+    });
+  }, [activityLogs, logSearchTerm, logTypeFilter, logActionFilter, settings.dateFormat]);
+
+  const logTypeOptions = useMemo(() => {
+    const options = activityLogs.map(log => log.type).filter(Boolean);
+    return [...new Set(options)];
+  }, [activityLogs]);
+
+  const logActionOptions = useMemo(() => {
+    const options = activityLogs.map(log => log.action).filter(Boolean);
+    return [...new Set(options)];
+  }, [activityLogs]);
 
   const pendingShipments = useMemo(() => filteredShipments.filter(s => !isCompleted(s.status)), [filteredShipments]);
   const completedShipments = useMemo(() => filteredShipments.filter(s => isCompleted(s.status)), [filteredShipments]);
@@ -1088,7 +1125,6 @@ function ShipmentTrackerApp({ onLogout }) {
           return next;
         });
         addActivityLog('shipment', 'Shipment', noteTargetShipment.hbl, 'NOTE DELETED', 'Shipment note deleted');
-        addNotificationItem('status', 'Shipment Note Deleted', `${noteTargetShipment.hbl}: note removed`, noteTargetShipment.id);
       }
       setShowNoteModal(false);
       return;
@@ -1106,7 +1142,6 @@ function ShipmentTrackerApp({ onLogout }) {
 
     const action = existing?.text ? 'NOTE UPDATED' : 'NOTE ADDED';
     addActivityLog('shipment', 'Shipment', noteTargetShipment.hbl, action, `${action === 'NOTE ADDED' ? 'Added' : 'Updated'} note: ${trimmedText.slice(0, 120)}`);
-    addNotificationItem('status', action === 'NOTE ADDED' ? 'Shipment Note Added' : 'Shipment Note Updated', `${noteTargetShipment.hbl}: ${trimmedText.slice(0, 120)}`, noteTargetShipment.id);
     setShowNoteModal(false);
   };
 
@@ -1121,7 +1156,6 @@ function ShipmentTrackerApp({ onLogout }) {
       return next;
     });
     addActivityLog('shipment', 'Shipment', noteTargetShipment.hbl, 'NOTE DELETED', 'Shipment note deleted');
-    addNotificationItem('status', 'Shipment Note Deleted', `${noteTargetShipment.hbl}: note removed`, noteTargetShipment.id);
     setShowNoteModal(false);
   };
 
@@ -1825,34 +1859,37 @@ function ShipmentTrackerApp({ onLogout }) {
       </div>
       {shipmentsWithNotes.length > 0 && (
         <div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
-          <div className="flex items-center justify-between mb-3">
+          <button onClick={() => setShowNoted(prev => !prev)} className="w-full flex items-center justify-between mb-3 text-left">
             <h3 className="text-sm font-semibold text-amber-900 flex items-center gap-2"><FileText className="w-4 h-4" />Noted Shipments ({shipmentsWithNotes.length})</h3>
-          </div>
-          <div className="space-y-2">
-            {shipmentsWithNotes.slice(0, 5).map(shipment => (
-              <button
-                key={shipment.id}
-                onClick={() => {
-                  if (isCompleted(shipment.status)) setShowCompleted(true);
-                  else setShowActive(true);
-                  highlightShipment(shipment.id);
-                }}
-                className="w-full text-left px-3 py-2 rounded-lg border border-amber-100 bg-white/70 hover:bg-white transition-colors"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-gray-900 flex items-center gap-1.5"><span>{shipment.hbl}</span>{notedShipmentRowMeta[shipment.id] ? <span className="text-xs text-amber-700">#{notedShipmentRowMeta[shipment.id].row}</span> : null}</span>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {(() => { const d = getTimeRemaining(shipment.eta, shipment.status); const isOverdue = d === 'Overdue'; const isCompleted2 = d === 'Completed'; return <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${isOverdue ? 'bg-red-100 text-red-700' : isCompleted2 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{d}</span>; })()}
-                    <span className="text-xs text-amber-700">{timeAgo(shipmentNotes[shipment.id]?.updatedAt || shipmentNotes[shipment.id]?.createdAt)}</span>
+            {showNoted ? <ChevronUp className="w-4 h-4 text-amber-700" /> : <ChevronDown className="w-4 h-4 text-amber-700" />}
+          </button>
+          {showNoted && (
+            <div className="space-y-2">
+              {shipmentsWithNotes.slice(0, 5).map(shipment => (
+                <button
+                  key={shipment.id}
+                  onClick={() => {
+                    if (isCompleted(shipment.status)) setShowCompleted(true);
+                    else setShowActive(true);
+                    highlightShipment(shipment.id);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg border border-amber-100 bg-white/70 hover:bg-white transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-gray-900 flex items-center gap-1.5">{notedShipmentRowMeta[shipment.id] ? <span className="text-xs text-amber-700">#{notedShipmentRowMeta[shipment.id].row}</span> : null}<span>{shipment.hbl}</span></span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {(() => { const d = getTimeRemaining(shipment.eta, shipment.status); const isOverdue = d === 'Overdue'; const isCompleted2 = d === 'Completed'; return <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${isOverdue ? 'bg-red-100 text-red-700' : isCompleted2 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{d}</span>; })()}
+                      <span className="text-xs text-amber-700">{timeAgo(shipmentNotes[shipment.id]?.updatedAt || shipmentNotes[shipment.id]?.createdAt)}</span>
+                    </div>
                   </div>
-                </div>
-                <p className="text-xs text-gray-600 truncate mt-1">{shipmentNotes[shipment.id]?.text}</p>
-              </button>
-            ))}
-            {shipmentsWithNotes.length > 5 && (
-              <p className="text-xs text-amber-700">Showing 5 latest notes.</p>
-            )}
-          </div>
+                  <p className="text-xs text-gray-600 truncate mt-1">{shipmentNotes[shipment.id]?.text}</p>
+                </button>
+              ))}
+              {shipmentsWithNotes.length > 5 && (
+                <p className="text-xs text-amber-700">Showing 5 latest notes.</p>
+              )}
+            </div>
+          )}
         </div>
       )}
       <div>
@@ -1941,7 +1978,7 @@ function ShipmentTrackerApp({ onLogout }) {
         </div>
         {notificationViewMode === 'card' ? (
           <div className="space-y-3">
-            {notifications.map(n => <NotificationCard key={n.id} notification={n} />)}
+            {visibleNotifications.map(n => <NotificationCard key={n.id} notification={n} />)}
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -1956,47 +1993,74 @@ function ShipmentTrackerApp({ onLogout }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {notifications.map(n => <NotificationTableRow key={n.id} notification={n} />)}
+                  {visibleNotifications.map(n => <NotificationTableRow key={n.id} notification={n} />)}
                 </tbody>
               </table>
             </div>
           </div>
         )}
       </div>
+    </div>
+  );
 
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Activity Logs</h3>
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Timestamp</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Entity</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Changes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activityLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="px-4 py-8 text-center text-gray-500">No activity logs yet</td>
-                  </tr>
-                ) : (
-                  activityLogs.map(log => (
-                    <tr key={log.id} onClick={() => handleActivityLogClick(log)} className={`border-b border-gray-100 cursor-pointer transition-colors duration-200 ${log.action === 'DELETED' && log.snapshot ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-blue-50'}`}>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatDateTime(log.timestamp, settings.dateFormat)}</td>
-                      <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${log.type === 'shipment' ? 'bg-blue-100 text-blue-800' : log.type === 'agent' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>{log.entityType}</span></td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{log.entityName}</td>
-                      <td className="px-4 py-3 flex items-center gap-1.5"><span className={`px-2 py-1 rounded text-xs font-medium ${log.action === 'CREATED' ? 'bg-green-100 text-green-700' : log.action === 'DELETED' ? 'bg-red-100 text-red-700' : log.action === 'MARKED COMPLETE' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>{log.action}</span>{log.action === 'DELETED' && log.snapshot && <span className="text-xs text-red-500 font-medium">↩ Undo</span>}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 max-w-sm truncate">{log.changes}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+  const LogsContent = () => (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+        <div className="flex flex-col lg:flex-row gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search logs by entity, action, change, or timestamp..."
+              value={logSearchTerm}
+              onChange={(e) => setLogSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+            />
           </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <select value={logTypeFilter} onChange={(e) => setLogTypeFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm">
+              <option value="all">All types</option>
+              {logTypeOptions.map(type => <option key={type} value={type}>{type}</option>)}
+            </select>
+            <select value={logActionFilter} onChange={(e) => setLogActionFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm">
+              <option value="all">All actions</option>
+              {logActionOptions.map(action => <option key={action} value={action}>{action}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Timestamp</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Entity</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Changes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredActivityLogs.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="px-4 py-8 text-center text-gray-500">No logs match your current search/filter</td>
+                </tr>
+              ) : (
+                filteredActivityLogs.map(log => (
+                  <tr key={log.id} onClick={() => handleActivityLogClick(log)} className={`border-b border-gray-100 cursor-pointer transition-colors duration-200 ${log.action === 'DELETED' && log.snapshot ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-blue-50'}`}>
+                    <td className="px-4 py-3 text-sm text-gray-600">{formatDateTime(log.timestamp, settings.dateFormat)}</td>
+                    <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${log.type === 'shipment' ? 'bg-blue-100 text-blue-800' : log.type === 'agent' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>{log.entityType}</span></td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{log.entityName}</td>
+                    <td className="px-4 py-3 flex items-center gap-1.5"><span className={`px-2 py-1 rounded text-xs font-medium ${log.action === 'CREATED' ? 'bg-green-100 text-green-700' : log.action === 'DELETED' ? 'bg-red-100 text-red-700' : log.action === 'MARKED COMPLETE' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>{log.action}</span>{log.action === 'DELETED' && log.snapshot && <span className="text-xs text-red-500 font-medium">↩ Undo</span>}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 max-w-sm truncate">{log.changes}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -2103,6 +2167,7 @@ function ShipmentTrackerApp({ onLogout }) {
       case 'reports': return ReportsContent();
       case 'documents': return DocumentsContent();
       case 'notifications': return NotificationsContent();
+      case 'logs': return LogsContent();
       case 'settings': return SettingsContent();
       case 'help': return HelpContent();
       default: return DashboardContent();
@@ -2110,7 +2175,7 @@ function ShipmentTrackerApp({ onLogout }) {
   };
 
   const getPageTitle = () => {
-    const titles = { dashboard: { title: 'Dashboard', subtitle: 'Overview of your shipment operations' }, shipments: { title: 'Shipments', subtitle: 'Manage and track all shipments' }, agents: { title: 'Agents', subtitle: 'Manage shipping agents and partners' }, consignees: { title: 'Consignees', subtitle: 'Manage customer information' }, reports: { title: 'Reports', subtitle: 'Generate and export reports' }, documents: { title: 'Documents', subtitle: 'Manage shipment documents' }, notifications: { title: 'Notifications', subtitle: 'Stay updated on shipment activities' }, settings: { title: 'Settings', subtitle: 'Configure your preferences' }, help: { title: 'Help & Support', subtitle: 'Get assistance and learn more' } };
+    const titles = { dashboard: { title: 'Dashboard', subtitle: 'Overview of your shipment operations' }, shipments: { title: 'Shipments', subtitle: 'Manage and track all shipments' }, agents: { title: 'Agents', subtitle: 'Manage shipping agents and partners' }, consignees: { title: 'Consignees', subtitle: 'Manage customer information' }, reports: { title: 'Reports', subtitle: 'Generate and export reports' }, documents: { title: 'Documents', subtitle: 'Manage shipment documents' }, notifications: { title: 'Notifications', subtitle: 'Stay updated on shipment activities' }, logs: { title: 'Logs', subtitle: 'Track and audit all activity changes' }, settings: { title: 'Settings', subtitle: 'Configure your preferences' }, help: { title: 'Help & Support', subtitle: 'Get assistance and learn more' } };
     return titles[activeMenu] || titles.dashboard;
   };
 
