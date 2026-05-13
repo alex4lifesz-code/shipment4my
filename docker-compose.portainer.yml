@@ -1,9 +1,7 @@
 services:
   shipment-tracker:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: shipment-tracker:latest
+    pull_policy: never
     environment:
       NODE_ENV: production
       PORT: 4000

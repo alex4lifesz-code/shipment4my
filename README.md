@@ -38,10 +38,12 @@ Use [docker-compose.portainer.yml](docker-compose.portainer.yml) as the Portaine
 
 The stack:
 
-- builds the app image from the local Dockerfile
+- runs the prebuilt `shipment-tracker:latest` image already available on the Docker host
 - exposes the service on port 4000
 - stores SQLite data in a named volume so it survives redeploys
 - restarts automatically unless the container is stopped
+
+If you deploy Portainer on a different Docker host, build and load the image there first or publish it to a registry.
 
 ## Data Location
 
